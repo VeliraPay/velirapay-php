@@ -1,0 +1,25 @@
+{
+    "data": {
+        "id": "acme",
+        "object": "account",
+        "type": "organization",
+        "name": "Acme",
+        "display_name": "Acme Inc.",
+        "logo_url": null,
+        "website_url": "https://acme.example",
+        "support_email": "billing@acme.example",
+        "brand_color": "#4f46e5",
+        "default_currency": "EUR",
+        "underpayment_tolerance": "1",
+        "overpayment_threshold": "3",
+        "created_at": "2026-01-15T10:00:00.000000Z"
+    },
+    "meta": {
+        "accepted_assets": [
+            "BTC",
+            "ETH",
+            "USDC_BASE"
+        ],
+        "mode": "test"
+    }
+}
