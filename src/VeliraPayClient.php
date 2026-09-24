@@ -129,6 +129,46 @@ final class VeliraPayClient
     }
 
     /**
+     * Get the account endpoints.
+     */
+    public function account(): AccountService
+    {
+        return $this->account;
+    }
+
+    /**
+     * Get the charge endpoints.
+     */
+    public function charges(): ChargeService
+    {
+        return $this->charges;
+    }
+
+    /**
+     * Get the payment link endpoints.
+     */
+    public function paymentLinks(): PaymentLinkService
+    {
+        return $this->paymentLinks;
+    }
+
+    /**
+     * Get the invoice endpoints.
+     */
+    public function invoices(): InvoiceService
+    {
+        return $this->invoices;
+    }
+
+    /**
+     * Get the event endpoints.
+     */
+    public function events(): EventService
+    {
+        return $this->events;
+    }
+
+    /**
      * Get the mode the API key works in, or null when its prefix is not recognised.
      */
     public function mode(): ?Mode

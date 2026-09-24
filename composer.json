@@ -1,6 +1,6 @@
 {
     "name": "velirapay/velirapay-php",
-    "description": "The official PHP library for the VeliraPay API: charges, payment links, invoices, events and signed webhooks.",
+    "description": "The official PHP library for VeliraPay crypto payments: charges, payment links, invoices, events and webhook verification.",
     "type": "library",
     "keywords": [
         "velirapay",

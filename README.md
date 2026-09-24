@@ -21,6 +21,7 @@ The official PHP library for [VeliraPay](https://velirapay.com), the crypto paym
 - [Test mode](#test-mode)
 - [Configuration](#configuration)
 - [Testing your integration](#testing-your-integration)
+- [Laravel](#laravel)
 
 ## Requirements
 
@@ -62,6 +63,8 @@ header('Location: '.$charge->checkoutUrl);
 The customer pays on the hosted checkout page. VeliraPay then tells your server about it with a [webhook](#webhooks).
 
 Amounts are always strings, such as `'49.90'`, never floats, so no precision is lost. Use [bcmath](https://www.php.net/manual/en/book.bc.php) or a money library to do arithmetic on them.
+
+Each group of endpoints is a property, such as `$velirapay->charges`, and also a method, `$velirapay->charges()`, which facades need.
 
 ## Charges
 
@@ -391,6 +394,10 @@ $this->call('POST', '/webhooks/velirapay', server: [
 ```
 
 To test code that calls the API, pass a mock PSR-18 client to the `VeliraPayClient`, or use a test-mode key.
+
+## Laravel
+
+In a Laravel application, install [velirapay/velirapay-laravel](https://github.com/VeliraPay/velirapay-laravel) instead: it configures the client from your `.env`, adds a facade, and turns webhooks into Laravel events.
 
 ## Development
 

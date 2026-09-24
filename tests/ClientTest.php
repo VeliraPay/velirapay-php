@@ -27,6 +27,17 @@ final class ClientTest extends TestCase
         $this->assertFalse($request->hasHeader('Idempotency-Key'));
     }
 
+    public function test_each_endpoint_group_is_also_reachable_through_a_method(): void
+    {
+        $client = $this->client();
+
+        $this->assertSame($client->account, $client->account());
+        $this->assertSame($client->charges, $client->charges());
+        $this->assertSame($client->paymentLinks, $client->paymentLinks());
+        $this->assertSame($client->invoices, $client->invoices());
+        $this->assertSame($client->events, $client->events());
+    }
+
     public function test_the_mode_is_read_from_the_key_prefix(): void
     {
         $this->assertSame(Mode::Live, $this->client('vp_live_secret')->mode());
