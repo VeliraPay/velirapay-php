@@ -64,6 +64,14 @@ final class ChargeServiceTest extends TestCase
         $this->assertEquals(new DateTimeImmutable('2026-09-20T10:05:41Z'), $charge->timeline[2]['time']);
         $this->assertSame('ada@example.com', $charge->customerEmail);
         $this->assertSame('Ada Lovelace', $charge->customerName);
+        $this->assertSame('ada@example.com', $charge->customer->email);
+        $this->assertSame('Ada Lovelace', $charge->customer->name);
+        $this->assertSame('203.0.113.7', $charge->customer->ipAddress);
+        $this->assertStringStartsWith('Mozilla/5.0 (Macintosh;', (string) $charge->customer->userAgent);
+        $this->assertSame('cus_1042', $charge->customer->reference);
+        $this->assertSame('+44 20 7946 0958', $charge->customer->phone);
+        $this->assertSame('GB', $charge->customer->country);
+        $this->assertSame(['orders' => 7, 'verified' => true], $charge->customer->metadata);
         $this->assertSame([['label' => 'Company', 'value' => 'Analytical Engines Ltd']], $charge->customFields);
         $this->assertSame(['order_id' => '1042'], $charge->metadata);
         $this->assertSame('https://velirapay.com/c/k3v9x2m7q8wz', $charge->checkoutUrl);
@@ -71,6 +79,69 @@ final class ChargeServiceTest extends TestCase
         $this->assertEquals(new DateTimeImmutable('2026-09-20T10:25:00Z'), $charge->expiresAt);
         $this->assertEquals(new DateTimeImmutable('2026-09-20T10:05:41Z'), $charge->paidAt);
         $this->assertEquals(new DateTimeImmutable('2026-09-20T09:55:00Z'), $charge->createdAt);
+    }
+
+    public function test_the_customers_details_are_sent_with_a_new_charge(): void
+    {
+        $this->http->json(['data' => self::fixture('charge')], 201);
+
+        $customer = ['email' => 'ada@example.com', 'ip_address' => '203.0.113.7', 'user_agent' => 'Mozilla/5.0', 'reference' => 'cus_1042', 'country' => 'GB', 'metadata' => ['orders' => 7]];
+
+        $this->client()->charges->create(['asset' => 'BTC', 'amount' => '150.00', 'currency' => 'EUR', 'customer' => $customer]);
+
+        $this->assertSame($customer, self::body($this->http->lastRequest())['customer']);
+    }
+
+    public function test_a_charge_sent_without_a_customer_object_takes_it_from_the_older_fields(): void
+    {
+        $attributes = self::fixture('charge');
+        unset($attributes['customer']);
+        $this->http->json(['data' => $attributes]);
+
+        $charge = $this->client()->charges->retrieve('k3v9x2m7q8wz');
+
+        $this->assertSame('ada@example.com', $charge->customer->email);
+        $this->assertSame('Ada Lovelace', $charge->customer->name);
+        $this->assertNull($charge->customer->ipAddress);
+        $this->assertSame([], $charge->customer->metadata);
+    }
+
+    public function test_a_charge_built_without_a_customer_takes_it_from_the_older_fields(): void
+    {
+        $charge = new Charge(
+            attributes: [],
+            id: 'k3v9x2m7q8wz',
+            status: ChargeStatus::Pending->value,
+            paymentLink: null,
+            invoice: null,
+            description: null,
+            fiatAmount: '150.00',
+            fiatCurrency: 'EUR',
+            asset: 'BTC',
+            assetAmount: '0.0025',
+            receivedAmount: null,
+            remainingAmount: '0.0025',
+            overpaid: false,
+            refundedAmount: '0',
+            refunds: [],
+            exchangeRate: '60000',
+            depositAddress: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+            transactions: [],
+            timeline: [],
+            customerEmail: 'ada@example.com',
+            customerName: 'Ada Lovelace',
+            customFields: [],
+            metadata: [],
+            checkoutUrl: null,
+            receiptUrl: null,
+            expiresAt: null,
+            paidAt: null,
+            createdAt: null,
+        );
+
+        $this->assertSame('ada@example.com', $charge->customer->email);
+        $this->assertSame('Ada Lovelace', $charge->customer->name);
+        $this->assertNull($charge->customer->ipAddress);
     }
 
     public function test_attributes_the_library_does_not_know_are_kept(): void

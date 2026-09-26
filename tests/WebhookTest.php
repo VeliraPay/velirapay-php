@@ -30,6 +30,7 @@ final class WebhookTest extends TestCase
         $this->assertFalse($event->test);
         $this->assertEquals(new DateTimeImmutable('2026-09-20T10:05:42Z'), $event->createdAt);
         $this->assertNull($event->invoice);
+        $this->assertNull($event->transaction);
 
         $charge = $event->charge;
         $this->assertNotNull($charge);
@@ -38,10 +39,32 @@ final class WebhookTest extends TestCase
         $this->assertSame('p4n8r2t6y1ua', $charge->paymentLink);
         $this->assertSame('0.002500000000000000', $charge->assetAmount);
         $this->assertSame(2, $charge->transactions[0]->confirmations);
-        $this->assertNull($charge->transactions[0]->requiredConfirmations);
+        $this->assertSame(2, $charge->transactions[0]->requiredConfirmations);
+        $this->assertSame('203.0.113.7', $charge->customer->ipAddress);
+        $this->assertSame('ada@example.com', $charge->customer->email);
         $this->assertSame(['order_id' => '1042'], $charge->metadata);
         $this->assertSame([], $charge->refunds);
         $this->assertNull($charge->checkoutUrl);
+    }
+
+    public function test_a_payment_detected_delivery_carries_the_transfer_that_was_seen(): void
+    {
+        $payload = self::payload('webhook_payment_detected');
+
+        $event = Webhook::constructEvent($payload, Webhook::signatureHeader($payload, self::SECRET), self::SECRET);
+
+        $this->assertTrue($event->is(EventType::ChargePaymentDetected));
+        $this->assertTrue($event->charge?->isPending());
+
+        $transaction = $event->transaction;
+        $this->assertNotNull($transaction);
+        $this->assertSame('7d1c5e9a3b2f8e6d4c0a9b8e7f6d5c4b3a2918f7e6d5c4b3a29180f7e6d5c4b3', $transaction->txid);
+        $this->assertSame('0.002500000000000000', $transaction->amount);
+        $this->assertSame(0, $transaction->confirmations);
+        $this->assertSame(2, $transaction->requiredConfirmations);
+        $this->assertFalse($transaction->credited);
+        $this->assertStringStartsWith('https://mempool.space/tx/', (string) $transaction->explorerUrl);
+        $this->assertEquals(new DateTimeImmutable('2026-09-20T09:58:12Z'), $transaction->seenAt);
     }
 
     public function test_a_signed_invoice_delivery_is_parsed(): void

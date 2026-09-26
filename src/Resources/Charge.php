@@ -13,6 +13,11 @@ use VeliraPay\Enums\ChargeStatus;
 final class Charge extends ApiResource
 {
     /**
+     * Everything known about who pays, including the IP address and browser they paid from.
+     */
+    public readonly Customer $customer;
+
+    /**
      * Create a new charge.
      *
      * @param  array<string, mixed>  $attributes
@@ -78,8 +83,11 @@ final class Charge extends ApiResource
         public readonly ?DateTimeImmutable $paidAt,
         /** When the charge was created. */
         public readonly ?DateTimeImmutable $createdAt,
+        ?Customer $customer = null,
     ) {
         parent::__construct($attributes);
+
+        $this->customer = $customer ?? Customer::fromArray(['email' => $customerEmail, 'name' => $customerName]);
     }
 
     /**
@@ -114,6 +122,10 @@ final class Charge extends ApiResource
             ], self::records($data, 'timeline')),
             customerEmail: self::nullableString($data, 'customer_email'),
             customerName: self::nullableString($data, 'customer_name'),
+            customer: Customer::fromArray(self::map($data, 'customer') + [
+                'email' => self::nullableString($data, 'customer_email'),
+                'name' => self::nullableString($data, 'customer_name'),
+            ]),
             customFields: array_map(static fn (array $field): array => [
                 'label' => self::string($field, 'label'),
                 'value' => self::string($field, 'value'),

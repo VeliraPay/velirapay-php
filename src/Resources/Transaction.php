@@ -24,13 +24,13 @@ final class Transaction extends ApiResource
         public readonly string $amount,
         /** How many confirmations the transaction has. */
         public readonly int $confirmations,
-        /** How many confirmations the coin needs before the transfer counts; absent from webhooks. */
+        /** How many confirmations the coin needs before the transfer counts. */
         public readonly ?int $requiredConfirmations,
         /** Whether the transfer has been counted towards the charge. */
         public readonly bool $credited,
-        /** A link to the transaction on a block explorer; absent from webhooks. */
+        /** A link to the transaction on a block explorer. */
         public readonly ?string $explorerUrl,
-        /** When the transfer was first seen; absent from webhooks. */
+        /** When the transfer was first seen. */
         public readonly ?DateTimeImmutable $seenAt,
     ) {
         parent::__construct($attributes);

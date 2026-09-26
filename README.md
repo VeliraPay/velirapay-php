@@ -53,7 +53,7 @@ $charge = $velirapay->charges->create([
     'amount' => '49.90',
     'currency' => 'EUR',
     'asset' => 'BTC',
-    'customer_email' => 'ada@example.com',
+    'customer' => ['email' => 'ada@example.com'],
     'metadata' => ['order_id' => '1042'],
 ]);
 
@@ -107,6 +107,35 @@ $velirapay->charges->recordRefund('k3v9x2m7q8wz', [
 ```
 
 The coins are `BTC`, `LTC`, `DOGE`, `BCH`, `ETH`, `XMR`, `SOL`, `USDT`, `USDC`, `USDT_TRON`, `USDC_BASE`, `USDC_POLYGON` and `USDT_BSC`; the ones your account accepts are listed by [`$velirapay->account->retrieve()`](#your-account).
+
+### Customer details
+
+`$charge->customer` holds what is known about who pays, to help you spot fraud before you ship anything. When the customer starts the payment on the hosted checkout, VeliraPay records the IP address and browser they did it from. A charge you create from your server comes from your server rather than the customer, so pass what you know:
+
+```php
+$charge = $velirapay->charges->create([
+    'amount' => '150.00',
+    'currency' => 'USD',
+    'asset' => 'BTC',
+    'customer' => [
+        'email' => 'ada@example.com',
+        'name' => 'Ada Lovelace',
+        'ip_address' => $_SERVER['REMOTE_ADDR'],
+        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+        'reference' => 'cus_1042',           // your own id for the customer
+        'phone' => '+44 20 7946 0958',
+        'country' => 'GB',                   // ISO 3166 two-letter code
+        'metadata' => ['orders' => 7],       // up to 20 keys, scalar values
+    ],
+]);
+
+$charge->customer->ipAddress;  // "203.0.113.7"
+$charge->customer->userAgent;
+$charge->customer->country;    // "GB"
+$charge->customer->metadata;   // ['orders' => 7]
+```
+
+Every field is optional, and any other key is refused with a `ValidationException`. The older `customer_email` parameter still works.
 
 ## Payment links
 
@@ -242,6 +271,10 @@ try {
 }
 
 switch ($event->type) {
+    case 'charge.payment_detected':
+        // Seen on-chain, not confirmed yet: tell the customer, but do not fulfil.
+        $txid = $event->transaction->txid;
+        break;
     case 'charge.paid':
         $orderId = $event->charge->metadata['order_id'];
         // Fulfil the order.
@@ -289,6 +322,8 @@ Some things to know:
 - **Deliveries can arrive out of order.** When the order matters, fetch the current state with `$velirapay->charges->retrieve($event->charge->id)` rather than trusting the payload.
 - **Test deliveries.** The dashboard's "Send test event" button sends a sample `charge.paid` with `$event->test` set to `true`.
 - **Signatures expire.** A signature older than 5 minutes is rejected, which stops an intercepted delivery from being replayed. Change the limit with the `tolerance` argument.
+
+`charge.payment_detected` arrives as soon as a transfer to a charge is seen on-chain, before it is confirmed; `charge.late_payment` when one reaches a charge that already expired or was canceled. Both carry that transfer as `$event->transaction` (`txid`, `amount`, `confirmations`, `requiredConfirmations`, `explorerUrl`, `seenAt`); for every other event it is `null`.
 
 The payload's charge and invoice have fewer fields than the API returns: webhook charges have no `checkoutUrl`, `receiptUrl`, `refunds` or `timeline`, and their amounts carry every decimal place (`"0.002500000000000000"`).
 

@@ -2,7 +2,12 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
-## 0.1.0 - Unreleased
+## 0.1.1 - 2026-09-26
+
+- The customer's details on every charge (`$charge->customer`), including the IP address and browser a checkout was started from, and a `customer` parameter to pass them when you create a charge.
+- The transfer a `charge.payment_detected` or `charge.late_payment` delivery is about, as `$event->transaction`.
+
+## 0.1.0 - 2026-09-24
 
 First release.
 

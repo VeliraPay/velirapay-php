@@ -19,7 +19,7 @@ final class ChargeService extends Service
     /**
      * Create a charge and send the customer to its checkout URL.
      *
-     * @param  array{asset: string, amount?: numeric-string|int|float, currency?: string, payment_link?: string, customer_email?: string, description?: string, metadata?: array<string, scalar|null>}  $params
+     * @param  array{asset: string, amount?: numeric-string|int|float, currency?: string, payment_link?: string, customer?: array{email?: string, name?: string, ip_address?: string, user_agent?: string, reference?: string, phone?: string, country?: string, metadata?: array<string, scalar|null>}, customer_email?: string, description?: string, metadata?: array<string, scalar|null>}  $params
      *
      * @throws ApiException
      * @throws ConnectionException
