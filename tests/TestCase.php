@@ -33,7 +33,7 @@ abstract class TestCase extends BaseTestCase
     /**
      * Create an API client that sends its requests to the mocked HTTP client.
      */
-    protected function client(string $apiKey = 'vp_test_secret', int $maxRetries = 0, ?string $appInfo = null): VeliraPayClient
+    protected function client(string $apiKey = 'vp_test_secret', int $maxRetries = 0, ?string $appInfo = null, int $maxRetryAfter = 10): VeliraPayClient
     {
         $factory = new HttpFactory;
 
@@ -44,6 +44,7 @@ abstract class TestCase extends BaseTestCase
             streamFactory: $factory,
             maxRetries: $maxRetries,
             appInfo: $appInfo,
+            maxRetryAfter: $maxRetryAfter,
         );
     }
 

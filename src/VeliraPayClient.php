@@ -33,7 +33,7 @@ final class VeliraPayClient
     /**
      * The version of this library.
      */
-    public const VERSION = '0.1.1';
+    public const VERSION = '0.2.0';
 
     /**
      * The address of the VeliraPay API.
@@ -75,9 +75,10 @@ final class VeliraPayClient
      *
      * @param  string  $apiKey  A secret key from the dashboard, starting with "vp_live_" or "vp_test_".
      * @param  ClientInterface|null  $httpClient  Any PSR-18 client; Guzzle or a discovered client when null.
-     * @param  int  $maxRetries  How many times a request is tried again after a network error, a rate limit or an outage.
+     * @param  int  $maxRetries  How many times a request is tried again after a network error, a rate limit, an outage, or while one with the same idempotency key is still being processed.
      * @param  float  $timeout  How many seconds a request may take, when this library creates the HTTP client.
      * @param  string|null  $appInfo  Your application's name and version, added to the User-Agent.
+     * @param  int  $maxRetryAfter  The longest Retry-After, in seconds, that is waited out before trying again; a longer one is thrown straight away.
      */
     public function __construct(
         #[SensitiveParameter] private readonly string $apiKey,
@@ -88,13 +89,22 @@ final class VeliraPayClient
         int $maxRetries = 2,
         float $timeout = 30.0,
         ?string $appInfo = null,
+        int $maxRetryAfter = 10,
     ) {
         if (trim($apiKey) === '') {
             throw new InvalidArgumentException('A VeliraPay API key is required. Create one in the dashboard under Developers > API keys.');
         }
 
+        if ($this->mode() === null) {
+            throw new InvalidArgumentException('A VeliraPay API key starts with "vp_live_" or "vp_test_". Copy yours from the dashboard under Developers > API keys.');
+        }
+
         if ($maxRetries < 0) {
             throw new InvalidArgumentException('The number of retries cannot be negative.');
+        }
+
+        if ($maxRetryAfter < 0) {
+            throw new InvalidArgumentException('The longest Retry-After to wait out cannot be negative.');
         }
 
         $userAgent = 'VeliraPay-PHP/'.self::VERSION.' PHP/'.PHP_VERSION;
@@ -119,6 +129,7 @@ final class VeliraPayClient
             baseUrl: $baseUrl,
             maxRetries: $maxRetries,
             userAgent: $userAgent,
+            maxRetryAfter: $maxRetryAfter,
         );
 
         $this->account = new AccountService($this->transport);

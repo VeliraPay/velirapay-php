@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace VeliraPay\Tests;
 
 use DateTimeImmutable;
+use VeliraPay\Enums\Asset;
 use VeliraPay\Enums\PricingType;
 use VeliraPay\Resources\PaymentLink;
 
@@ -19,6 +20,7 @@ final class PaymentLinkServiceTest extends TestCase
             'pricing_type' => PricingType::Open,
             'currency' => 'USD',
             'suggested_amounts' => ['5.00', '10.00', '25.00'],
+            'accepted_assets' => [Asset::BTC, 'ETH'],
             'custom_fields' => [['label' => 'Message', 'required' => false]],
             'expires_at' => new DateTimeImmutable('2026-12-31T23:59:59+00:00'),
         ]);
@@ -31,6 +33,7 @@ final class PaymentLinkServiceTest extends TestCase
             'pricing_type' => 'open',
             'currency' => 'USD',
             'suggested_amounts' => ['5.00', '10.00', '25.00'],
+            'accepted_assets' => ['BTC', 'ETH'],
             'custom_fields' => [['label' => 'Message', 'required' => false]],
             'expires_at' => '2026-12-31T23:59:59+00:00',
         ], self::body($request));

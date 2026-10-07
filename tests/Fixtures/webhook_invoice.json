@@ -39,7 +39,7 @@
                 {
                     "code": "z8x6c4v2b0nm",
                     "status": "paid",
-                    "asset": "USDC_BASE"
+                    "asset": "USDC"
                 }
             ],
             "sent_at": "2026-09-21T08:00:00.000000Z",

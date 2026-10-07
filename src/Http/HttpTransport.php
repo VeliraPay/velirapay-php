@@ -29,11 +29,6 @@ final class HttpTransport
     private const RETRYABLE_STATUSES = [429, 502, 503, 504];
 
     /**
-     * The longest Retry-After, in seconds, that is waited out rather than reported.
-     */
-    private const MAX_RETRY_AFTER = 10;
-
-    /**
      * The response to the most recent request.
      */
     private ?ApiResponse $lastResponse = null;
@@ -49,6 +44,7 @@ final class HttpTransport
      * Create a new transport.
      *
      * @param  (Closure(float): void)|null  $sleep
+     * @param  int  $maxRetryAfter  The longest Retry-After, in seconds, that is waited out rather than reported.
      */
     public function __construct(
         #[SensitiveParameter] private readonly string $apiKey,
@@ -59,6 +55,7 @@ final class HttpTransport
         private readonly int $maxRetries,
         private readonly string $userAgent,
         ?Closure $sleep = null,
+        private readonly int $maxRetryAfter = 10,
     ) {
         $this->sleep = $sleep ?? static function (float $seconds): void {
             usleep((int) round($seconds * 1_000_000));
@@ -169,20 +166,22 @@ final class HttpTransport
             return null;
         }
 
+        $retryAfter = $response->retryAfter();
+
+        // A conflict that says when to come back is an earlier request with the same idempotency key still being processed.
         $retryable = in_array($response->status, self::RETRYABLE_STATUSES, true)
-            || ($response->status === 500 && $method === 'GET');
+            || ($response->status === 500 && $method === 'GET')
+            || ($response->status === 409 && $retryAfter !== null);
 
         if (! $retryable) {
             return null;
         }
 
-        $retryAfter = $response->retryAfter();
-
         if ($retryAfter === null) {
             return $this->backoff($attempt);
         }
 
-        return $retryAfter <= self::MAX_RETRY_AFTER ? (float) $retryAfter : null;
+        return $retryAfter <= $this->maxRetryAfter ? (float) $retryAfter : null;
     }
 
     /**

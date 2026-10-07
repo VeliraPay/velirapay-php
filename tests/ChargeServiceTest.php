@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace VeliraPay\Tests;
 
 use DateTimeImmutable;
+use VeliraPay\Enums\Asset;
 use VeliraPay\Enums\ChargeStatus;
+use VeliraPay\Exceptions\InvalidArgumentException;
 use VeliraPay\Resources\Charge;
 
 final class ChargeServiceTest extends TestCase
@@ -15,7 +17,7 @@ final class ChargeServiceTest extends TestCase
         $this->http->json(['data' => self::fixture('charge')], 201);
 
         $charge = $this->client()->charges->create([
-            'asset' => 'BTC',
+            'asset' => Asset::BTC,
             'amount' => '150.00',
             'currency' => 'EUR',
             'metadata' => ['order_id' => '1042'],
@@ -165,6 +167,18 @@ final class ChargeServiceTest extends TestCase
         $this->client()->charges->retrieve('../account');
 
         $this->assertSame('/v1/charges/..%2Faccount', $this->http->lastRequest()->getUri()->getPath());
+    }
+
+    public function test_an_empty_id_is_refused_before_a_request_is_sent(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The id in /v1/charges/{id}/cancel cannot be empty.');
+
+        try {
+            $this->client()->charges->cancel('');
+        } finally {
+            $this->assertSame([], $this->http->requests);
+        }
     }
 
     public function test_charges_are_listed_with_filters(): void

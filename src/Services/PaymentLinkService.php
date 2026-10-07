@@ -6,6 +6,7 @@ namespace VeliraPay\Services;
 
 use DateTimeInterface;
 use Generator;
+use VeliraPay\Enums\Asset;
 use VeliraPay\Enums\PricingType;
 use VeliraPay\Exceptions\ApiException;
 use VeliraPay\Exceptions\ConnectionException;
@@ -20,7 +21,7 @@ final class PaymentLinkService extends Service
     /**
      * Create a payment link.
      *
-     * @param  array{title: string, pricing_type: PricingType|string, currency: string, amount?: numeric-string|int|float|null, description?: string|null, suggested_amounts?: list<numeric-string|int|float>|null, min_amount?: numeric-string|int|float|null, max_amount?: numeric-string|int|float|null, accepted_assets?: list<string>|null, success_url?: string|null, cancel_url?: string|null, collect_name?: bool, require_email?: bool, success_message?: string|null, custom_fields?: list<array{label: string, required: bool}>, expires_at?: DateTimeInterface|string|null, max_payments?: int|null}  $params
+     * @param  array{title: string, pricing_type: PricingType|string, currency: string, amount?: numeric-string|int|float|null, description?: string|null, suggested_amounts?: list<numeric-string|int|float>|null, min_amount?: numeric-string|int|float|null, max_amount?: numeric-string|int|float|null, accepted_assets?: list<Asset|string>|null, success_url?: string|null, cancel_url?: string|null, collect_name?: bool, require_email?: bool, success_message?: string|null, custom_fields?: list<array{label: string, required: bool}>, expires_at?: DateTimeInterface|string|null, max_payments?: int|null}  $params
      *
      * @throws ApiException
      * @throws ConnectionException
@@ -44,7 +45,7 @@ final class PaymentLinkService extends Service
     /**
      * Change any of a payment link's fields.
      *
-     * @param  array{title?: string, pricing_type?: PricingType|string, currency?: string, amount?: numeric-string|int|float|null, description?: string|null, suggested_amounts?: list<numeric-string|int|float>|null, min_amount?: numeric-string|int|float|null, max_amount?: numeric-string|int|float|null, accepted_assets?: list<string>|null, success_url?: string|null, cancel_url?: string|null, collect_name?: bool, require_email?: bool, success_message?: string|null, custom_fields?: list<array{label: string, required: bool}>, expires_at?: DateTimeInterface|string|null, max_payments?: int|null}  $params
+     * @param  array{title?: string, pricing_type?: PricingType|string, currency?: string, amount?: numeric-string|int|float|null, description?: string|null, suggested_amounts?: list<numeric-string|int|float>|null, min_amount?: numeric-string|int|float|null, max_amount?: numeric-string|int|float|null, accepted_assets?: list<Asset|string>|null, success_url?: string|null, cancel_url?: string|null, collect_name?: bool, require_email?: bool, success_message?: string|null, custom_fields?: list<array{label: string, required: bool}>, expires_at?: DateTimeInterface|string|null, max_payments?: int|null}  $params
      *
      * @throws ApiException
      * @throws ConnectionException

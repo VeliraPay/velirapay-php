@@ -25,7 +25,7 @@ final class Transaction extends ApiResource
         /** How many confirmations the transaction has. */
         public readonly int $confirmations,
         /** How many confirmations the coin needs before the transfer counts. */
-        public readonly ?int $requiredConfirmations,
+        public readonly int $requiredConfirmations,
         /** Whether the transfer has been counted towards the charge. */
         public readonly bool $credited,
         /** A link to the transaction on a block explorer. */
@@ -48,7 +48,7 @@ final class Transaction extends ApiResource
             txid: self::string($data, 'txid'),
             amount: self::string($data, 'amount', '0'),
             confirmations: self::int($data, 'confirmations'),
-            requiredConfirmations: self::nullableInt($data, 'required_confirmations'),
+            requiredConfirmations: self::int($data, 'required_confirmations'),
             credited: self::bool($data, 'credited'),
             explorerUrl: self::nullableString($data, 'explorer_url'),
             seenAt: self::date($data, 'seen_at'),

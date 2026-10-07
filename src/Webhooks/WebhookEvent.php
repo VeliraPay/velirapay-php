@@ -26,9 +26,9 @@ final class WebhookEvent extends ApiResource
      */
     public function __construct(
         array $attributes,
-        /** The delivery's id, also sent as the X-VeliraPay-Delivery header; retries keep it, so use it to skip duplicates. */
+        /** The delivery's id, also sent as the X-VeliraPay-Delivery header; retries keep it, but every endpoint's copy of an event has its own. */
         public readonly string $id,
-        /** The id of the matching event in the events API, or null for test deliveries. */
+        /** The event's id in the events API, the same on every endpoint's copy, so the one to skip duplicates by; null for test deliveries. */
         public readonly ?string $eventId,
         /** One of the EventType values, such as "charge.paid". */
         public readonly string $type,

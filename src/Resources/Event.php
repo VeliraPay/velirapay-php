@@ -28,7 +28,7 @@ final class Event extends ApiResource
         public readonly array $details,
         /** When it happened. */
         public readonly ?DateTimeImmutable $createdAt,
-        /** The charge the event is about. */
+        /** The charge the event is about, as it is now, without its timeline. */
         public readonly ?Charge $charge,
         /** The invoice the event is about. */
         public readonly ?Invoice $invoice,

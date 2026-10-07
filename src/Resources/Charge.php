@@ -43,7 +43,7 @@ final class Charge extends ApiResource
         public readonly string $fiatAmount,
         /** The fiat currency, such as "USD". */
         public readonly string $fiatCurrency,
-        /** The coin and network paid with, such as "BTC" or "USDT". */
+        /** One of the Asset values: the coin and network paid with, such as "BTC" or "USDT". */
         public readonly string $asset,
         /** The exact amount of the coin to send. */
         public readonly string $assetAmount,
@@ -63,7 +63,7 @@ final class Charge extends ApiResource
         public readonly string $depositAddress,
         /** The transfers seen into the deposit address. */
         public readonly array $transactions,
-        /** The charge's history, oldest first; absent from webhooks. */
+        /** The charge's history, oldest first; absent from webhooks and from charges embedded in events. */
         public readonly array $timeline,
         /** The customer's email address. */
         public readonly ?string $customerEmail,

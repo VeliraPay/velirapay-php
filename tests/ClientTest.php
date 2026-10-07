@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace VeliraPay\Tests;
 
 use GuzzleHttp\Psr7\HttpFactory;
+use PHPUnit\Framework\Attributes\DataProvider;
 use VeliraPay\Enums\ChargeStatus;
 use VeliraPay\Enums\Mode;
 use VeliraPay\Exceptions\InvalidArgumentException;
+use VeliraPay\Exceptions\RateLimitException;
 use VeliraPay\VeliraPayClient;
 
 final class ClientTest extends TestCase
@@ -44,7 +46,6 @@ final class ClientTest extends TestCase
         $this->assertTrue($this->client('vp_live_secret')->isLiveMode());
         $this->assertSame(Mode::Test, $this->client('vp_test_secret')->mode());
         $this->assertTrue($this->client('vp_test_secret')->isTestMode());
-        $this->assertNull($this->client('sk_live_secret')->mode());
     }
 
     public function test_an_empty_key_is_rejected(): void
@@ -54,11 +55,50 @@ final class ClientTest extends TestCase
         new VeliraPayClient(' ');
     }
 
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function keysWithoutAMode(): iterable
+    {
+        yield 'another service\'s key' => ['sk_live_secret'];
+        yield 'no mode' => ['vp_secret'];
+        yield 'a prefix in capitals' => ['VP_LIVE_secret'];
+    }
+
+    #[DataProvider('keysWithoutAMode')]
+    public function test_a_key_that_does_not_start_with_a_mode_is_rejected(string $apiKey): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('starts with "vp_live_" or "vp_test_"');
+
+        $this->client($apiKey);
+    }
+
     public function test_a_negative_number_of_retries_is_rejected(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
         $this->client(maxRetries: -1);
+    }
+
+    public function test_a_negative_longest_retry_after_is_rejected(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        $this->client(maxRetryAfter: -1);
+    }
+
+    public function test_a_retry_after_longer_than_the_configured_longest_is_thrown_straight_away(): void
+    {
+        $this->http->json(['message' => 'Too Many Attempts.'], 429, ['Retry-After' => '6']);
+
+        try {
+            $this->client(maxRetries: 2, maxRetryAfter: 5)->charges->list();
+            $this->fail('No exception was thrown.');
+        } catch (RateLimitException $exception) {
+            $this->assertSame(6, $exception->retryAfter());
+            $this->assertCount(1, $this->http->requests);
+        }
     }
 
     public function test_an_http_client_is_found_when_none_is_given(): void

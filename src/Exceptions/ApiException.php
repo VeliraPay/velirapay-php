@@ -64,4 +64,12 @@ class ApiException extends RuntimeException implements VeliraPayException
     {
         return $this->response->header($name);
     }
+
+    /**
+     * Get how many seconds the API asked to wait before trying again, or null when it did not say.
+     */
+    public function retryAfter(): ?int
+    {
+        return $this->response->retryAfter();
+    }
 }

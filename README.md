@@ -25,8 +25,8 @@ The official PHP library for [VeliraPay](https://velirapay.com), the crypto paym
 
 ## Requirements
 
-- PHP 8.1 or later
-- A [PSR-18](https://www.php-fig.org/psr/psr-18/) HTTP client. Laravel, Symfony and most frameworks already have one.
+- PHP 8.2 or later, with the `ctype` extension (enabled by default)
+- A [PSR-18](https://www.php-fig.org/psr/psr-18/) HTTP client. Laravel, Symfony and most frameworks already have one, and [Guzzle](https://docs.guzzlephp.org) is used when it is installed.
 
 ## Installation
 
@@ -71,14 +71,16 @@ Each group of endpoints is a property, such as `$velirapay->charges`, and also a
 A charge is one payment in one coin. The exchange rate is locked when it is created, and the customer has 30 minutes to pay.
 
 ```php
+use VeliraPay\Enums\Asset;
 use VeliraPay\Enums\ChargeStatus;
 
 // For an amount you set.
 $charge = $velirapay->charges->create([
     'amount' => '150.00',
     'currency' => 'USD',
-    'asset' => 'USDC_BASE',
+    'asset' => Asset::USDC, // USD Coin on Ethereum
     'description' => 'Pro plan, 1 year',
+    'metadata' => ['order_id' => '1042'],
 ]);
 
 // For one of your payment links: the currency comes from the link, and so does the price when it is fixed.
@@ -96,6 +98,7 @@ $charge->metadata;        // ['order_id' => '1042']
 
 $paid = $velirapay->charges->list(['status' => ChargeStatus::Paid]);
 
+// Only while the charge is pending and no transfer to it has been seen.
 $velirapay->charges->cancel('k3v9x2m7q8wz');
 
 // Record a refund you sent from your own wallet.
@@ -106,7 +109,9 @@ $velirapay->charges->recordRefund('k3v9x2m7q8wz', [
 ]);
 ```
 
-The coins are `BTC`, `LTC`, `DOGE`, `BCH`, `ETH`, `XMR`, `SOL`, `USDT`, `USDC`, `USDT_TRON`, `USDC_BASE`, `USDC_POLYGON` and `USDT_BSC`; the ones your account accepts are listed by [`$velirapay->account->retrieve()`](#your-account).
+`asset` takes a `VeliraPay\Enums\Asset` case or its value, such as `'BTC'`. The enum lists every coin the API knows, but not all of them can be paid in at any given time: a coin is only offered while VeliraPay can also pay it out, and a network can be switched off. `$account->acceptedAssets` lists the coins your account takes right now ([Your account](#your-account)); a charge in any other coin throws a `ValidationException`.
+
+`metadata` holds up to 20 keys of at most 40 characters each. Values are strings, numbers, booleans or `null`, and a string is at most 500 characters.
 
 ### Customer details
 
@@ -125,7 +130,7 @@ $charge = $velirapay->charges->create([
         'reference' => 'cus_1042',           // your own id for the customer
         'phone' => '+44 20 7946 0958',
         'country' => 'GB',                   // ISO 3166 two-letter code
-        'metadata' => ['orders' => 7],       // up to 20 keys, scalar values
+        'metadata' => ['orders' => 7],       // the same limits as the charge's metadata
     ],
 ]);
 
@@ -142,6 +147,7 @@ Every field is optional, and any other key is refused with a `ValidationExceptio
 A payment link is a reusable checkout page, for a fixed price or one the customer chooses.
 
 ```php
+use VeliraPay\Enums\Asset;
 use VeliraPay\Enums\PricingType;
 
 $link = $velirapay->paymentLinks->create([
@@ -149,7 +155,7 @@ $link = $velirapay->paymentLinks->create([
     'pricing_type' => PricingType::Fixed,
     'amount' => '150.00',
     'currency' => 'EUR',
-    'accepted_assets' => ['BTC', 'ETH', 'USDC_BASE'], // null accepts every coin
+    'accepted_assets' => [Asset::BTC, Asset::ETH, Asset::USDC], // null accepts every coin the account takes
     'success_url' => 'https://example.com/thanks',
     'custom_fields' => [['label' => 'Company', 'required' => false]],
 ]);
@@ -195,6 +201,8 @@ $velirapay->invoices->void($invoice->id);
 
 Pass `amount` instead of `items` to bill a single total.
 
+An invoice can be emailed once every 10 minutes, and an account can send 100 invoice emails an hour. Past either limit, `send()` throws a `RateLimitException` whose `retryAfter()` says how many seconds to wait. In test mode, invoices are only emailed to members of your account: anyone else is refused with a `ValidationException` on `customer_email`, by `send()` as by `create()` with `send_email`.
+
 ## Events
 
 Every change to a charge or an invoice is recorded as an event, such as `charge.paid` or `invoice.viewed`. Webhooks carry the same events.
@@ -207,7 +215,8 @@ $payments = $velirapay->events->list(['type' => EventType::ChargePaymentDetected
 
 $event = $velirapay->events->retrieve('9b1f7a3e-2c4d-4e8f-a6b0-1d2c3e4f5a6b');
 $event->is(EventType::ChargePaid);
-$event->charge; // the charge as it is now
+$event->details; // what was recorded, such as the amount and txid of a payment or a refund
+$event->charge;  // the charge as it is now, without its timeline
 ```
 
 ## Your account
@@ -216,9 +225,24 @@ $event->charge; // the charge as it is now
 $account = $velirapay->account->retrieve();
 
 $account->displayName;
-$account->acceptedAssets; // ['BTC', 'ETH', …], for the key's mode
+$account->supportEmail;
+$account->supportPhone;   // "+442071234567", shown to customers next to the support email
+$account->acceptedAssets; // ['BTC', 'ETH', …], the coins it takes right now, in the key's mode
 $account->mode;           // "live" or "test"
+
+$business = $account->business; // as entered under Business details in the dashboard's settings
+$business->type;                // a VeliraPay\Enums\BusinessType, such as BusinessType::Company
+$business->legalName;
+$business->registrationNumber;
+$business->taxId;
+$business->address->line1;      // also line2, city, postalCode, state and country (ISO 3166 two-letter code)
+$business->industry;            // a VeliraPay\Enums\Industry, such as Industry::Software
+$business->productDescription;
+$business->monthlyVolume;       // a VeliraPay\Enums\MonthlyVolume, such as MonthlyVolume::Under50k ("10k_50k")
+$business->phone;               // in international format
 ```
+
+Every business field is `null` until it is filled in. `type`, `industry` and `monthlyVolume` are also `null` for a value the API adds after this version of the library; `$business->get('industry')` still returns it as sent.
 
 ## Lists and pagination
 
@@ -270,6 +294,9 @@ try {
     exit;
 }
 
+// The same event can arrive more than once: remember this key, and skip the events you have handled.
+$key = $event->eventId ?? $event->id;
+
 switch ($event->type) {
     case 'charge.payment_detected':
         // Seen on-chain, not confirmed yet: tell the customer, but do not fulfil.
@@ -287,10 +314,12 @@ switch ($event->type) {
 http_response_code(200);
 ```
 
-In Laravel, exclude the route from CSRF protection and read the body with `$request->getContent()`:
+In Laravel, the route has to be left out of CSRF protection. The simplest way is to register it in `routes/api.php`, which has none (`php artisan install:api` creates the file), and read the body with `$request->getContent()`:
 
 ```php
+// routes/api.php, so the endpoint is https://your-app.example/api/webhooks/velirapay
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use VeliraPay\Exceptions\SignatureVerificationException;
 use VeliraPay\Webhooks\Webhook;
 
@@ -310,22 +339,41 @@ Route::post('/webhooks/velirapay', function (Request $request) {
     }
 
     return response()->noContent();
-})->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
+});
 ```
+
+To keep the route in `routes/web.php`, leave its path out of CSRF protection in `bootstrap/app.php` instead:
+
+```php
+->withMiddleware(function (Middleware $middleware): void {
+    $middleware->validateCsrfTokens(except: ['webhooks/velirapay']);
+})
+```
+
+Calling `->withoutMiddleware(ValidateCsrfToken::class)` on the route, as earlier versions of this README suggested, no longer works on Laravel 13: CSRF protection is now the `PreventRequestForgery` middleware, and `ValidateCsrfToken` is only a deprecated subclass of it, so leaving it out leaves nothing out. Laravel 13 also renames `validateCsrfTokens()` to `preventRequestForgery()`, though the old name still works.
 
 With a PSR-7 request, use `Webhook::constructEventFromRequest($request, $secret)`.
 
 Some things to know:
 
-- **Answer quickly.** A delivery counts as delivered when your endpoint answers with a 2xx status within 15 seconds. Queue slow work instead of doing it before answering.
-- **Deliveries are retried.** A failed delivery is tried again after 1 minute, 5 minutes, 30 minutes and 2 hours. A retry keeps the delivery's id (`$event->id`), so store the ids you have handled and skip repeats.
+- **Answer quickly.** A delivery counts as delivered when your endpoint answers with a 2xx status within 15 seconds. Queue slow work instead of doing it before answering. Redirects are not followed, so a 3xx counts as a failure: give the endpoint's final URL.
+- **Failed deliveries are retried.** A delivery is tried 14 times over about 3 days: after 1 minute, 5 minutes, 30 minutes, 1 hour, 2 hours, 4 hours and 8 hours, then every 10 hours. When one runs out of attempts, the account's owners and admins are emailed (at most once a day per endpoint), and an endpoint that fails 15 deliveries in a row is switched off until you switch it back on in the dashboard. The endpoint's delivery log there keeps every attempt for 30 days, and can send a delivery again.
+- **Skip duplicates by event.** A retried delivery keeps its id (`$event->id`, also the `X-VeliraPay-Delivery` header), but that id belongs to one endpoint: each endpoint gets its own copy of an event, under its own id. `$event->eventId` is the same on every copy and is the event's id in `GET /v1/events`, so `$event->eventId ?? $event->id` is the key to remember.
+- **Fulfil once.** A paid invoice sends both `charge.paid`, for the charge that paid it, and `invoice.paid`. Fulfil on one of them, not both.
 - **Deliveries can arrive out of order.** When the order matters, fetch the current state with `$velirapay->charges->retrieve($event->charge->id)` rather than trusting the payload.
-- **Test deliveries.** The dashboard's "Send test event" button sends a sample `charge.paid` with `$event->test` set to `true`.
+- **Test deliveries.** The dashboard's "Send test event" button sends a sample `charge.paid` with `$event->test` set to `true` and no `eventId`. Its charge is a made-up sample without many of a real one's fields, such as `transactions` and `customer`.
 - **Signatures expire.** A signature older than 5 minutes is rejected, which stops an intercepted delivery from being replayed. Change the limit with the `tolerance` argument.
 
-`charge.payment_detected` arrives as soon as a transfer to a charge is seen on-chain, before it is confirmed; `charge.late_payment` when one reaches a charge that already expired or was canceled. Both carry that transfer as `$event->transaction` (`txid`, `amount`, `confirmations`, `requiredConfirmations`, `explorerUrl`, `seenAt`); for every other event it is `null`.
+`charge.payment_detected` arrives as soon as a transfer to a charge is seen on-chain, before it is confirmed; `charge.late_payment` when one reaches a charge that already expired, was canceled or was paid. Both carry that transfer as `$event->transaction` (`txid`, `amount`, `confirmations`, `requiredConfirmations`, `credited`, `explorerUrl`, `seenAt`); for every other event it is `null`.
 
-The payload's charge and invoice have fewer fields than the API returns: webhook charges have no `checkoutUrl`, `receiptUrl`, `refunds` or `timeline`, and their amounts carry every decimal place (`"0.002500000000000000"`).
+The charge and invoice in a delivery are not quite the ones the API returns:
+
+- A charge's coin amounts and exchange rate carry all 18 decimal places (`"0.002500000000000000"` rather than `"0.0025"`). Compare amounts as numbers, not as strings.
+- A charge has no `timeline`, `refunds`, `checkoutUrl` or `receiptUrl`. Its `payment_link` is `{code, title}` and its `invoice` is `{code, number}`: `$charge->paymentLink` and `$charge->invoice` hold the code, and `$charge->get('payment_link')` has the rest.
+- An invoice has no `overdue` or `documentUrl`; both are `null`.
+- `charge.refunded` carries no refund. Read its amount, txid and reason from the event, with `$velirapay->events->retrieve($event->eventId)->details`, which holds `amount`, and `txid` and `reason` when you gave them.
+
+Fetch the object when you need what a delivery leaves out. The charges that events carry, from `GET /v1/events`, have no `timeline` either.
 
 ## Errors
 
@@ -335,14 +383,14 @@ A failed request throws an exception carrying the API's message:
 | --- | --- |
 | `AuthenticationException` | The API key is missing, wrong or revoked (401). |
 | `NotFoundException` | The object does not exist, or belongs to the other mode (404). |
-| `ConflictException` | The object cannot make that change, such as canceling a paid charge, or the idempotency key was used for a different request (409). |
-| `ValidationException` | The request has invalid fields (422). `errors()` lists them. |
-| `RateLimitException` | Too many requests (429). `retryAfter()` says how long to wait. |
-| `ServerException` | VeliraPay had a problem (5xx). |
-| `InvalidRequestException` | Any other 4xx. |
+| `ConflictException` | The object cannot make that change (409), such as canceling a charge once a transfer to it has been seen or it is no longer pending, or sending or voiding an invoice that is no longer open. Also when the idempotency key was used for a different request, or is held by a request still being processed; that one carries a `Retry-After` and is [retried](#retries-and-idempotency) for you. |
+| `ValidationException` | The request has invalid fields (422). `errors()` lists them. In test mode, an invoice emailed to someone outside your account is refused this way, on `customer_email`. |
+| `RateLimitException` | Too many requests (429), including an invoice emailed again within 10 minutes and more than 100 invoice emails an hour. `retryAfter()` says how many seconds to wait. |
+| `ServerException` | VeliraPay had a problem (5xx), such as no exchange rate being available to create a charge with (503). |
+| `InvalidRequestException` | Any other 4xx, such as an `Idempotency-Key` longer than 255 characters (400). |
 | `ConnectionException` | The API could not be reached. |
 
-They live in `VeliraPay\Exceptions`. All of them implement `VeliraPayException`, and all but `ConnectionException` extend `ApiException`.
+They live in `VeliraPay\Exceptions`. All of them implement `VeliraPayException`, and all but `ConnectionException` extend `ApiException`, whose `retryAfter()` returns the response's `Retry-After` in seconds, or `null` when it had none.
 
 ```php
 use VeliraPay\Exceptions\ApiException;
@@ -362,7 +410,9 @@ try {
 
 ## Retries and idempotency
 
-Requests that fail with a network error, a rate limit (429) or an outage (502, 503, 504) are tried again up to twice, waiting a little longer each time. A 500 is retried for reads only, since a write may have been carried out. A rate limit asking to wait more than 10 seconds is thrown as a `RateLimitException` straight away.
+Requests that fail with a network error, a rate limit (429) or an outage (502, 503, 504) are tried again up to twice, waiting a little longer each time, or as long as the API's `Retry-After` header asks. A 500 is retried for reads only, since a write may have been carried out. A 409 is retried only when it carries a `Retry-After`: that is the API still working on an earlier request with the same idempotency key, and the retry gets that request's response once it is done.
+
+A `Retry-After` longer than `maxRetryAfter` (10 seconds unless [configured](#configuration) otherwise) is not waited out: the exception is thrown straight away, and its `retryAfter()` says how long to wait.
 
 While retries are on, each write carries an `Idempotency-Key` header, so the API carries out a retried request once and answers the retry with the first response. The library makes up a key per call; pass your own, such as an order number, to make a call safe to repeat across processes:
 
@@ -372,15 +422,23 @@ $charge = $velirapay->charges->create($params, idempotencyKey: 'order-1042');
 $velirapay->lastResponse()?->wasReplayed(); // true when the API answered from an earlier request
 ```
 
-Keys are kept for 24 hours. Reusing one with different parameters throws a `ConflictException`.
+What the API does with a key:
+
+- Only a successful (2xx) response is stored, and it is replayed for 24 hours to any request repeating the key. A request that failed stored nothing, so repeating it runs it again.
+- A key is at most 255 characters; a longer one is refused with a 400.
+- A key covers one account, one mode, one HTTP method and one path. Every API key of that account and mode shares it, so two servers using different API keys still create one charge for one idempotency key.
+- Reusing a key with a different body or query string throws a `ConflictException`.
+- A request holds its key for up to 60 seconds while it is being processed. Another one with the same key gets a 409 with `Retry-After: 1` in that time, which the library waits out and retries.
 
 ## Test mode
 
-Keys starting with `vp_test_` work in test mode: charges are paid with test coins on each chain's test network, and nothing touches real funds. Test and live objects are fully separate: a live key cannot see test charges, and each mode has its own webhooks.
+Keys starting with `vp_test_` work in test mode: charges are paid with test coins on each chain's test network, and nothing touches real funds. Test and live objects are fully separate: a live key cannot see test charges, and each mode has its own webhooks. Invoices are only emailed to members of your account.
 
 ```php
 $velirapay->isTestMode(); // read from the key's prefix
 ```
+
+Every key starts with `vp_live_` or `vp_test_`, and the client throws an `InvalidArgumentException` for any other, which the API would refuse.
 
 ## Configuration
 
@@ -388,6 +446,7 @@ $velirapay->isTestMode(); // read from the key's prefix
 $velirapay = new VeliraPayClient(
     apiKey: getenv('VELIRAPAY_API_KEY'),
     maxRetries: 2,           // 0 turns retries off
+    maxRetryAfter: 10,       // the longest Retry-After, in seconds, waited out before trying again
     timeout: 30.0,           // seconds, for the Guzzle client the library creates
     appInfo: 'MyShop/2.1',   // added to the User-Agent
 );

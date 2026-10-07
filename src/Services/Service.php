@@ -7,6 +7,7 @@ namespace VeliraPay\Services;
 use Closure;
 use VeliraPay\Exceptions\ApiException;
 use VeliraPay\Exceptions\ConnectionException;
+use VeliraPay\Exceptions\InvalidArgumentException;
 use VeliraPay\Exceptions\UnexpectedResponseException;
 use VeliraPay\Http\ApiResponse;
 use VeliraPay\Http\HttpTransport;
@@ -104,9 +105,17 @@ abstract class Service
 
     /**
      * Build a path with the given ids escaped into it.
+     *
+     * @throws InvalidArgumentException
      */
     protected static function path(string $format, string ...$ids): string
     {
+        foreach ($ids as $id) {
+            if (trim($id) === '') {
+                throw new InvalidArgumentException('The id in '.str_replace('%s', '{id}', $format).' cannot be empty.');
+            }
+        }
+
         return vsprintf($format, array_map(rawurlencode(...), $ids));
     }
 

@@ -28,7 +28,8 @@
         "source": "https://github.com/VeliraPay/velirapay-php"
     },
     "require": {
-        "php": "^8.1",
+        "php": "^8.2",
+        "ext-ctype": "*",
         "php-http/discovery": "^1.19",
         "psr/http-client": "^1.0",
         "psr/http-client-implementation": "^1.0",
@@ -41,6 +42,9 @@
         "laravel/pint": "^1.13",
         "phpstan/phpstan": "^2.1",
         "phpunit/phpunit": "^10.5 || ^11.5 || ^12.3 || ^13.0"
+    },
+    "suggest": {
+        "guzzlehttp/guzzle": "The HTTP client this library creates when none is given, with the timeout option applied (^7.8)."
     },
     "autoload": {
         "psr-4": {

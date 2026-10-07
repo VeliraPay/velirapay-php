@@ -7,6 +7,9 @@ namespace VeliraPay\Tests;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Psr7\HttpFactory;
 use GuzzleHttp\Psr7\Request;
+use PHPUnit\Framework\Attributes\DataProvider;
+use VeliraPay\Exceptions\ApiException;
+use VeliraPay\Exceptions\ConflictException;
 use VeliraPay\Exceptions\ConnectionException;
 use VeliraPay\Exceptions\RateLimitException;
 use VeliraPay\Exceptions\ServerException;
@@ -87,6 +90,75 @@ final class RetryTest extends TestCase
         }
     }
 
+    /**
+     * @return iterable<string, array{int, class-string<ApiException>}>
+     */
+    public static function statusesWithARetryAfter(): iterable
+    {
+        yield 'still being processed' => [409, ConflictException::class];
+        yield 'unavailable' => [503, ServerException::class];
+    }
+
+    /**
+     * @param  class-string<ApiException>  $exception
+     */
+    #[DataProvider('statusesWithARetryAfter')]
+    public function test_any_retry_after_longer_than_the_longest_is_thrown_straight_away(int $status, string $exception): void
+    {
+        $this->http->json(['message' => 'Try again later.'], $status, ['Retry-After' => '11']);
+
+        try {
+            $this->transport()->request('POST', '/v1/charges', [], ['asset' => 'BTC']);
+            $this->fail('No exception was thrown.');
+        } catch (ApiException $caught) {
+            $this->assertInstanceOf($exception, $caught);
+            $this->assertSame(11, $caught->retryAfter());
+            $this->assertCount(1, $this->http->requests);
+            $this->assertSame([], $this->sleeps);
+        }
+    }
+
+    public function test_the_longest_retry_after_that_is_waited_out_can_be_raised(): void
+    {
+        $this->http
+            ->json(['message' => 'Too Many Attempts.'], 429, ['Retry-After' => '60'])
+            ->json(self::listResponse([]));
+
+        $this->transport(maxRetryAfter: 60)->request('GET', '/v1/charges');
+
+        $this->assertCount(2, $this->http->requests);
+        $this->assertSame([60.0], $this->sleeps);
+    }
+
+    public function test_a_write_still_being_processed_under_the_same_key_is_waited_for(): void
+    {
+        $this->http
+            ->json(['message' => 'A request with this Idempotency-Key is still being processed.'], 409, ['Retry-After' => '1'])
+            ->json(['data' => self::fixture('charge')], 201, ['Idempotent-Replayed' => 'true']);
+
+        $response = $this->transport()->request('POST', '/v1/charges', [], ['asset' => 'BTC'], 'order-1042');
+
+        $this->assertSame(201, $response->status);
+        $this->assertTrue($response->wasReplayed());
+        $this->assertCount(2, $this->http->requests);
+        $this->assertSame('order-1042', $this->http->requests[1]->getHeaderLine('Idempotency-Key'));
+        $this->assertSame([1.0], $this->sleeps);
+    }
+
+    public function test_a_conflict_without_a_retry_after_is_not_retried(): void
+    {
+        $this->http->json(['message' => 'This Idempotency-Key was already used for a different request.'], 409);
+
+        try {
+            $this->transport()->request('POST', '/v1/charges', [], ['asset' => 'BTC'], 'order-1042');
+            $this->fail('No exception was thrown.');
+        } catch (ConflictException $exception) {
+            $this->assertNull($exception->retryAfter());
+            $this->assertCount(1, $this->http->requests);
+            $this->assertSame([], $this->sleeps);
+        }
+    }
+
     public function test_network_errors_are_retried_until_the_limit(): void
     {
         $error = new ConnectException('Connection refused', new Request('GET', 'https://api.velirapay.com/v1/charges'));
@@ -126,7 +198,7 @@ final class RetryTest extends TestCase
     /**
      * Create a transport that records its waits instead of sleeping.
      */
-    private function transport(int $maxRetries = 2): HttpTransport
+    private function transport(int $maxRetries = 2, int $maxRetryAfter = 10): HttpTransport
     {
         $factory = new HttpFactory;
 
@@ -141,6 +213,7 @@ final class RetryTest extends TestCase
             sleep: function (float $seconds): void {
                 $this->sleeps[] = $seconds;
             },
+            maxRetryAfter: $maxRetryAfter,
         );
     }
 }

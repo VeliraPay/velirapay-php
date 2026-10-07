@@ -13,6 +13,11 @@ use VeliraPay\Enums\Mode;
 final class Account extends ApiResource
 {
     /**
+     * Who runs the account and what it sells; every field is null until it is filled in.
+     */
+    public readonly AccountBusiness $business;
+
+    /**
      * Create a new account.
      *
      * @param  array<string, mixed>  $attributes
@@ -46,10 +51,15 @@ final class Account extends ApiResource
         public readonly ?DateTimeImmutable $createdAt,
         /** The mode of the API key that fetched the account: "live" or "test". */
         public readonly ?string $mode,
-        /** The coins the account can be paid in, in that mode. */
+        /** The Asset values the account can be paid in right now, in that mode. */
         public readonly array $acceptedAssets,
+        /** The phone number customers see next to the support email. */
+        public readonly ?string $supportPhone = null,
+        ?AccountBusiness $business = null,
     ) {
         parent::__construct($attributes);
+
+        $this->business = $business ?? AccountBusiness::fromArray([]);
     }
 
     /**
@@ -76,6 +86,8 @@ final class Account extends ApiResource
             createdAt: self::date($data, 'created_at'),
             mode: self::nullableString($meta, 'mode'),
             acceptedAssets: self::strings($meta, 'accepted_assets'),
+            supportPhone: self::nullableString($data, 'support_phone'),
+            business: AccountBusiness::fromArray(self::map($data, 'business')),
         );
     }
 

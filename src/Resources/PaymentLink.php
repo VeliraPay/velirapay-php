@@ -41,7 +41,7 @@ final class PaymentLink extends ApiResource
         public readonly ?string $maxAmount,
         /** The fiat currency the link is priced in. */
         public readonly string $currency,
-        /** The coins the link takes, or null for every coin the account can receive. */
+        /** The Asset values the link takes, or null for every coin the account can receive. */
         public readonly ?array $acceptedAssets,
         /** One of the PaymentLinkStatus values: active or archived. */
         public readonly string $status,
