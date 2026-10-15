@@ -46,6 +46,8 @@ final class ChargeServiceTest extends TestCase
         $this->assertNull($charge->invoice);
         $this->assertSame('150.00', $charge->fiatAmount);
         $this->assertSame('EUR', $charge->fiatCurrency);
+        $this->assertNull($charge->coupon);
+        $this->assertNull($charge->discountAmount);
         $this->assertSame('BTC', $charge->asset);
         $this->assertSame('0.0025', $charge->assetAmount);
         $this->assertSame('0.0025', $charge->receivedAmount);
@@ -92,6 +94,18 @@ final class ChargeServiceTest extends TestCase
         $this->client()->charges->create(['asset' => 'BTC', 'amount' => '150.00', 'currency' => 'EUR', 'customer' => $customer]);
 
         $this->assertSame($customer, self::body($this->http->lastRequest())['customer']);
+    }
+
+    public function test_a_coupon_is_applied_to_a_new_charge(): void
+    {
+        $this->http->json(['data' => ['fiat_amount' => '135.00', 'coupon' => 'SPRING10', 'discount_amount' => '15.00'] + self::fixture('charge')], 201);
+
+        $charge = $this->client()->charges->create(['payment_link' => 'p4n8r2t6y1ua', 'asset' => 'BTC', 'coupon' => 'spring10']);
+
+        $this->assertSame('spring10', self::body($this->http->lastRequest())['coupon']);
+        $this->assertSame('135.00', $charge->fiatAmount);
+        $this->assertSame('SPRING10', $charge->coupon);
+        $this->assertSame('15.00', $charge->discountAmount);
     }
 
     public function test_a_charge_sent_without_a_customer_object_takes_it_from_the_older_fields(): void

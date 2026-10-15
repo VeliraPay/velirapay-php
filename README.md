@@ -4,7 +4,7 @@
 [![Latest version](https://img.shields.io/packagist/v/velirapay/velirapay-php)](https://packagist.org/packages/velirapay/velirapay-php)
 [![License](https://img.shields.io/packagist/l/velirapay/velirapay-php)](LICENSE)
 
-The official PHP library for [VeliraPay](https://velirapay.com), the crypto payment processor. It covers the whole v1 API (charges, payment links, invoices, events and your account) and verifies the webhooks VeliraPay sends you.
+The official PHP library for [VeliraPay](https://velirapay.com), the crypto payment processor. It covers the whole v1 API (charges, payment links, invoices, coupons, events and your account) and verifies the webhooks VeliraPay sends you.
 
 - [Requirements](#requirements)
 - [Installation](#installation)
@@ -12,6 +12,7 @@ The official PHP library for [VeliraPay](https://velirapay.com), the crypto paym
 - [Charges](#charges)
 - [Payment links](#payment-links)
 - [Invoices](#invoices)
+- [Coupons](#coupons)
 - [Events](#events)
 - [Your account](#your-account)
 - [Lists and pagination](#lists-and-pagination)
@@ -86,6 +87,11 @@ $charge = $velirapay->charges->create([
 // For one of your payment links: the currency comes from the link, and so does the price when it is fixed.
 $charge = $velirapay->charges->create(['payment_link' => 'p4n8r2t6y1ua', 'asset' => 'ETH']);
 
+// With one of your coupons: fiatAmount is the lower price, and discountAmount what the coupon took off.
+$charge = $velirapay->charges->create(['payment_link' => 'p4n8r2t6y1ua', 'asset' => 'ETH', 'coupon' => 'SPRING10']);
+$charge->coupon;          // "SPRING10"
+$charge->discountAmount;  // "15.00"
+
 $charge = $velirapay->charges->retrieve('k3v9x2m7q8wz');
 
 $charge->status;          // "pending", "underpaid", "paid", "expired" or "canceled"
@@ -112,6 +118,8 @@ $velirapay->charges->recordRefund('k3v9x2m7q8wz', [
 `asset` takes a `VeliraPay\Enums\Asset` case or its value, such as `'BTC'`. The enum lists every coin the API knows, but not all of them can be paid in at any given time: a coin is only offered while VeliraPay can also pay it out, and a network can be switched off. `$account->acceptedAssets` lists the coins your account takes right now ([Your account](#your-account)); a charge in any other coin throws a `ValidationException`.
 
 `metadata` holds up to 20 keys of at most 40 characters each. Values are strings, numbers, booleans or `null`, and a string is at most 500 characters.
+
+An account can create 300 charges in each mode within 30 minutes, through the API, the MCP server and the dashboard together; canceled charges count, paid live ones do not, and payments customers start on the hosted checkout are not counted. Past that, `create()` throws a `RateLimitException` whose `retryAfter()` says how many seconds to wait.
 
 ### Customer details
 
@@ -201,7 +209,32 @@ $velirapay->invoices->void($invoice->id);
 
 Pass `amount` instead of `items` to bill a single total.
 
-An invoice can be emailed once every 10 minutes, and an account can send 100 invoice emails an hour. Past either limit, `send()` throws a `RateLimitException` whose `retryAfter()` says how many seconds to wait. In test mode, invoices are only emailed to members of your account: anyone else is refused with a `ValidationException` on `customer_email`, by `send()` as by `create()` with `send_email`.
+An invoice can be emailed once every 10 minutes, and an account can send 100 emails to customers an hour: invoices, payment requests and refund notices together, shared with the other accounts its owner owns. Past either limit, `send()` throws a `RateLimitException` whose `retryAfter()` says how many seconds to wait, and `create()` with `send_email` throws it and creates nothing. In test mode, invoices are only emailed to members of your account: anyone else is refused with a `ValidationException` on `customer_email`, by `send()` as by `create()` with `send_email`.
+
+## Coupons
+
+A coupon takes a percentage or a fixed amount off a payment. Customers type its code on the hosted checkout of a payment link, you add it to the link's URL so it is already applied (`https://velirapay.com/pay/p4n8r2t6y1ua?coupon=SPRING10`), or you pass it as `coupon` when you [create a charge](#charges).
+
+```php
+$coupon = $velirapay->coupons->create([
+    'code' => 'SPRING10',          // 3 to 32 letters, digits, dashes or underscores, stored in capitals
+    'percent_off' => '10',         // or 'amount_off' => '5.00' with a 'currency'
+    'max_redemptions' => 100,      // an open charge holds a use until it is paid, expires or is canceled
+    'once_per_customer' => true,   // the customer's email is then required to use it
+    'payment_links' => ['p4n8r2t6y1ua'], // empty for every link, and charges made without one
+    'expires_at' => '2026-12-31',  // a bare date ends at 23:59:59 UTC
+]);
+
+$coupon->id;              // "SPRING10": the code is the id, and is matched in any case
+$coupon->timesRedeemed;   // how many paid charges used it
+
+$velirapay->coupons->update('SPRING10', ['active' => false]); // pause it
+$velirapay->coupons->delete('SPRING10'); // charges that used it keep its code and their discount
+```
+
+`currency` is required with `amount_off` or `min_amount`, and the coupon then only works on payments in that currency. Once a coupon exists, its code, discount, currency and `min_amount` cannot change: `update()` takes `max_redemptions`, `once_per_customer`, `payment_links` (which replaces the whole list), `active` and `expires_at`.
+
+A coupon that cannot be used throws a `ValidationException` on `coupon` from `charges->create()`, saying why: it does not exist in this mode, is paused, has expired, is limited to other links, is for another currency, needs a higher price, would leave nothing to pay or is used up, or it is once per customer and the charge has no customer email or that customer already used it.
 
 ## Events
 
@@ -357,7 +390,7 @@ With a PSR-7 request, use `Webhook::constructEventFromRequest($request, $secret)
 Some things to know:
 
 - **Answer quickly.** A delivery counts as delivered when your endpoint answers with a 2xx status within 15 seconds. Queue slow work instead of doing it before answering. Redirects are not followed, so a 3xx counts as a failure: give the endpoint's final URL.
-- **Failed deliveries are retried.** A delivery is tried 14 times over about 3 days: after 1 minute, 5 minutes, 30 minutes, 1 hour, 2 hours, 4 hours and 8 hours, then every 10 hours. When one runs out of attempts, the account's owners and admins are emailed (at most once a day per endpoint), and an endpoint that fails 15 deliveries in a row is switched off until you switch it back on in the dashboard. The endpoint's delivery log there keeps every attempt for 30 days, and can send a delivery again.
+- **Failed deliveries are retried.** A delivery is tried 14 times over about 3 days: after 1 minute, 5 minutes, 30 minutes, 1 hour, 2 hours, 4 hours and 8 hours, then every 10 hours. When one runs out of attempts, the account's owners and admins are emailed (at most once a day per endpoint), and an endpoint that fails 15 deliveries in a row is switched off until you switch it back on in the dashboard. While it is off, no new events are queued for it and the deliveries still waiting are marked failed; switching it back on does not send what it missed. The endpoint's delivery log keeps every attempt for 30 days, and can send a delivery again.
 - **Skip duplicates by event.** A retried delivery keeps its id (`$event->id`, also the `X-VeliraPay-Delivery` header), but that id belongs to one endpoint: each endpoint gets its own copy of an event, under its own id. `$event->eventId` is the same on every copy and is the event's id in `GET /v1/events`, so `$event->eventId ?? $event->id` is the key to remember.
 - **Fulfil once.** A paid invoice sends both `charge.paid`, for the charge that paid it, and `invoice.paid`. Fulfil on one of them, not both.
 - **Deliveries can arrive out of order.** When the order matters, fetch the current state with `$velirapay->charges->retrieve($event->charge->id)` rather than trusting the payload.
@@ -384,8 +417,8 @@ A failed request throws an exception carrying the API's message:
 | `AuthenticationException` | The API key is missing, wrong or revoked (401). |
 | `NotFoundException` | The object does not exist, or belongs to the other mode (404). |
 | `ConflictException` | The object cannot make that change (409), such as canceling a charge once a transfer to it has been seen or it is no longer pending, or sending or voiding an invoice that is no longer open. Also when the idempotency key was used for a different request, or is held by a request still being processed; that one carries a `Retry-After` and is [retried](#retries-and-idempotency) for you. |
-| `ValidationException` | The request has invalid fields (422). `errors()` lists them. In test mode, an invoice emailed to someone outside your account is refused this way, on `customer_email`. |
-| `RateLimitException` | Too many requests (429), including an invoice emailed again within 10 minutes and more than 100 invoice emails an hour. `retryAfter()` says how many seconds to wait. |
+| `ValidationException` | The request has invalid fields (422). `errors()` lists them, such as `coupon` for a coupon that cannot be used. In test mode, an invoice emailed to someone outside your account is refused this way, on `customer_email`. |
+| `RateLimitException` | Too many requests (429), including an invoice emailed again within 10 minutes, more than 100 emails to customers an hour, and more than 300 charges created in 30 minutes. `retryAfter()` says how many seconds to wait. |
 | `ServerException` | VeliraPay had a problem (5xx), such as no exchange rate being available to create a charge with (503). |
 | `InvalidRequestException` | Any other 4xx, such as an `Idempotency-Key` longer than 255 characters (400). |
 | `ConnectionException` | The API could not be reached. |

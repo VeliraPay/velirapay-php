@@ -7,6 +7,8 @@
     "description": "Pro plan, 1 year",
     "fiat_amount": "150.00",
     "fiat_currency": "EUR",
+    "coupon": null,
+    "discount_amount": null,
     "asset": "BTC",
     "asset_amount": "0.0025",
     "received_amount": "0.0025",

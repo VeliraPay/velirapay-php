@@ -21,6 +21,7 @@ use VeliraPay\Http\ApiResponse;
 use VeliraPay\Http\HttpTransport;
 use VeliraPay\Services\AccountService;
 use VeliraPay\Services\ChargeService;
+use VeliraPay\Services\CouponService;
 use VeliraPay\Services\EventService;
 use VeliraPay\Services\InvoiceService;
 use VeliraPay\Services\PaymentLinkService;
@@ -33,7 +34,7 @@ final class VeliraPayClient
     /**
      * The version of this library.
      */
-    public const VERSION = '0.2.0';
+    public const VERSION = '0.3.0';
 
     /**
      * The address of the VeliraPay API.
@@ -59,6 +60,11 @@ final class VeliraPayClient
      * Invoices: itemised bills customers pay in the coin of their choice.
      */
     public readonly InvoiceService $invoices;
+
+    /**
+     * Coupons: discount codes for the hosted checkout and new charges.
+     */
+    public readonly CouponService $coupons;
 
     /**
      * Events: the history of every charge and invoice.
@@ -136,6 +142,7 @@ final class VeliraPayClient
         $this->charges = new ChargeService($this->transport);
         $this->paymentLinks = new PaymentLinkService($this->transport);
         $this->invoices = new InvoiceService($this->transport);
+        $this->coupons = new CouponService($this->transport);
         $this->events = new EventService($this->transport);
     }
 
@@ -169,6 +176,14 @@ final class VeliraPayClient
     public function invoices(): InvoiceService
     {
         return $this->invoices;
+    }
+
+    /**
+     * Get the coupon endpoints.
+     */
+    public function coupons(): CouponService
+    {
+        return $this->coupons;
     }
 
     /**

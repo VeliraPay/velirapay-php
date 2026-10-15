@@ -2,6 +2,12 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## 0.3.0 - 2026-10-15
+
+- Coupons: `$velirapay->coupons` creates, retrieves, updates, lists and deletes them, as `Coupon` objects.
+- A `coupon` parameter to apply one when you create a charge, and `$charge->coupon` and `$charge->discountAmount` on every charge, webhooks included.
+- The README covers the limits the API now enforces: 300 charges per account and mode in 30 minutes, and 100 emails to customers an hour, shared with the other accounts of the same owner. Past either, a `RateLimitException` says how long to wait.
+
 ## 0.2.0 - 2026-10-07
 
 - The account's support phone number (`$account->supportPhone`) and business details (`$account->business`): the kind of entity, legal name, registration number, tax id, address, industry, product description, expected monthly volume and phone number, with `BusinessType`, `Industry` and `MonthlyVolume` enums. A value the API adds later reads as `null` instead of failing, and `get()` still returns it.

@@ -84,6 +84,10 @@ final class Charge extends ApiResource
         /** When the charge was created. */
         public readonly ?DateTimeImmutable $createdAt,
         ?Customer $customer = null,
+        /** The code of the coupon the customer used. */
+        public readonly ?string $coupon = null,
+        /** What the coupon took off, in fiat; fiatAmount is already the lower price. */
+        public readonly ?string $discountAmount = null,
     ) {
         parent::__construct($attributes);
 
@@ -136,6 +140,8 @@ final class Charge extends ApiResource
             expiresAt: self::date($data, 'expires_at'),
             paidAt: self::date($data, 'paid_at'),
             createdAt: self::date($data, 'created_at'),
+            coupon: self::nullableString($data, 'coupon'),
+            discountAmount: self::nullableString($data, 'discount_amount'),
         );
     }
 
