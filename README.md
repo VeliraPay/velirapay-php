@@ -327,6 +327,13 @@ try {
     exit;
 }
 
+// Sent when the endpoint is added or moved: it receives nothing else until it answers.
+if ($event->isVerification()) {
+    header('Content-Type: application/json');
+    echo $event->challengeResponse();
+    exit;
+}
+
 // The same event can arrive more than once: remember this key, and skip the events you have handled.
 $key = $event->eventId ?? $event->id;
 
@@ -367,6 +374,10 @@ Route::post('/webhooks/velirapay', function (Request $request) {
         abort(400);
     }
 
+    if ($event->isVerification()) {
+        return response()->json(['challenge' => $event->challenge()]);
+    }
+
     if ($event->is('charge.paid')) {
         ProcessPaidCharge::dispatch($event->charge->id);
     }
@@ -389,6 +400,8 @@ With a PSR-7 request, use `Webhook::constructEventFromRequest($request, $secret)
 
 Some things to know:
 
+- **Answer the verification challenge.** When an endpoint is added, or its URL changes, VeliraPay sends it a signed `webhook.verification` delivery and sends it nothing else until it answers with HTTP 200 and the challenge, as `$event->challengeResponse()` gives it. Endpoint URLs must use `https://`.
+- **A second signature for a day after a rotation.** For a day after you rotate the signing secret, the `X-VeliraPay-Signature` header carries a `v1` made with the old secret too, so a receiver that still has the old one keeps working. `constructEvent()` accepts a delivery whichever `v1` matches.
 - **Answer quickly.** A delivery counts as delivered when your endpoint answers with a 2xx status within 15 seconds. Queue slow work instead of doing it before answering. Redirects are not followed, so a 3xx counts as a failure: give the endpoint's final URL.
 - **Failed deliveries are retried.** A delivery is tried 14 times over about 3 days: after 1 minute, 5 minutes, 30 minutes, 1 hour, 2 hours, 4 hours and 8 hours, then every 10 hours. When one runs out of attempts, the account's owners and admins are emailed (at most once a day per endpoint), and an endpoint that fails 15 deliveries in a row is switched off until you switch it back on in the dashboard. While it is off, no new events are queued for it and the deliveries still waiting are marked failed; switching it back on does not send what it missed. The endpoint's delivery log keeps every attempt for 30 days, and can send a delivery again.
 - **Skip duplicates by event.** A retried delivery keeps its id (`$event->id`, also the `X-VeliraPay-Delivery` header), but that id belongs to one endpoint: each endpoint gets its own copy of an event, under its own id. `$event->eventId` is the same on every copy and is the event's id in `GET /v1/events`, so `$event->eventId ?? $event->id` is the key to remember.

@@ -35,6 +35,11 @@ final class Webhook
     public const DEFAULT_TOLERANCE = 300;
 
     /**
+     * The event of the challenge sent to an endpoint when it is added or moved: it receives nothing else until it answers.
+     */
+    public const VERIFICATION_EVENT = 'webhook.verification';
+
+    /**
      * Verify a delivery's signature and parse its payload.
      *
      * @param  string  $payload  The raw request body, exactly as received.

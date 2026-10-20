@@ -197,6 +197,26 @@ final class WebhookTest extends TestCase
         $this->assertSame('testab12cd34', $event->charge?->id);
     }
 
+    public function test_the_verification_challenge_is_recognised_and_answered(): void
+    {
+        $payload = '{"id":"0199f0c2-2b7a-7c0e-9d3a-5e8f1a2b3c4d","event":"webhook.verification","mode":"live","created_at":"2026-10-19T22:00:00.000000Z","data":{"challenge":"c4Lr9xT2mQ7vZ1"}}';
+
+        $event = Webhook::constructEvent($payload, Webhook::signatureHeader($payload, self::SECRET), self::SECRET);
+
+        $this->assertTrue($event->isVerification());
+        $this->assertSame('c4Lr9xT2mQ7vZ1', $event->challenge());
+        $this->assertSame('{"challenge":"c4Lr9xT2mQ7vZ1"}', $event->challengeResponse());
+    }
+
+    public function test_other_deliveries_have_no_challenge_to_answer(): void
+    {
+        $event = Webhook::constructEvent(self::payload('webhook_charge'), Webhook::signatureHeader(self::payload('webhook_charge'), self::SECRET), self::SECRET);
+
+        $this->assertFalse($event->isVerification());
+        $this->assertNull($event->challenge());
+        $this->assertNull($event->challengeResponse());
+    }
+
     public function test_a_signed_payload_that_is_not_a_json_object_is_rejected(): void
     {
         $this->expectException(InvalidArgumentException::class);

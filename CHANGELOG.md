@@ -2,6 +2,11 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+- `$event->isVerification()`, `$event->challenge()` and `$event->challengeResponse()` for the `webhook.verification` challenge (`Webhook::VERIFICATION_EVENT`) VeliraPay now sends an endpoint when it is added or its URL changes. The endpoint receives nothing else until it answers with the challenge.
+- The README covers the challenge, HTTPS-only endpoints, and the second `v1` signature deliveries carry for a day after the signing secret is rotated.
+
 ## 0.3.0 - 2026-10-15
 
 - Coupons: `$velirapay->coupons` creates, retrieves, updates, lists and deletes them, as `Coupon` objects.

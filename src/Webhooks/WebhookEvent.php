@@ -112,4 +112,36 @@ final class WebhookEvent extends ApiResource
     {
         return $this->mode === Mode::Live->value;
     }
+
+    /**
+     * Determine whether this is the challenge VeliraPay sends when an endpoint is added or moved, to be answered with challenge().
+     */
+    public function isVerification(): bool
+    {
+        return $this->is(Webhook::VERIFICATION_EVENT);
+    }
+
+    /**
+     * The value a verification delivery must be answered with, or null for every other delivery.
+     */
+    public function challenge(): ?string
+    {
+        if (! $this->isVerification()) {
+            return null;
+        }
+
+        $challenge = self::map($this->toArray(), 'data')['challenge'] ?? null;
+
+        return is_string($challenge) ? $challenge : null;
+    }
+
+    /**
+     * The JSON body that answers a verification delivery, or null for every other delivery.
+     */
+    public function challengeResponse(): ?string
+    {
+        $challenge = $this->challenge();
+
+        return $challenge === null ? null : json_encode(['challenge' => $challenge], JSON_THROW_ON_ERROR);
+    }
 }
