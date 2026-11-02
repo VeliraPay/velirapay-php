@@ -18,10 +18,12 @@ enum Asset: string
     case ETH = 'ETH';
     case XMR = 'XMR';
     case SOL = 'SOL';
+    case BNB = 'BNB';
     case USDT = 'USDT';
     case USDC = 'USDC';
     case USDT_TRON = 'USDT_TRON';
     case USDC_BASE = 'USDC_BASE';
     case USDC_POLYGON = 'USDC_POLYGON';
     case USDT_BSC = 'USDT_BSC';
+    case USDC_BSC = 'USDC_BSC';
 }
