@@ -20,11 +20,14 @@ use VeliraPay\Exceptions\InvalidArgumentException;
 use VeliraPay\Http\ApiResponse;
 use VeliraPay\Http\HttpTransport;
 use VeliraPay\Services\AccountService;
+use VeliraPay\Services\AssetService;
 use VeliraPay\Services\ChargeService;
 use VeliraPay\Services\CouponService;
 use VeliraPay\Services\EventService;
 use VeliraPay\Services\InvoiceService;
 use VeliraPay\Services\PaymentLinkService;
+use VeliraPay\Services\PayoutService;
+use VeliraPay\Services\WebhookEndpointService;
 
 /**
  * A client for the VeliraPay API, authenticated with one API key.
@@ -34,7 +37,7 @@ final class VeliraPayClient
     /**
      * The version of this library.
      */
-    public const VERSION = '0.3.0';
+    public const VERSION = '0.4.0';
 
     /**
      * The address of the VeliraPay API.
@@ -47,12 +50,17 @@ final class VeliraPayClient
     public readonly AccountService $account;
 
     /**
-     * Charges: single payments in one coin.
+     * Assets: the coins on offer, and the lowest price each can be charged at.
+     */
+    public readonly AssetService $assets;
+
+    /**
+     * Charges: how to ask a customer for a payment, in one coin.
      */
     public readonly ChargeService $charges;
 
     /**
-     * Payment links: reusable checkout pages.
+     * Payment links: reusable checkout pages many customers pay through.
      */
     public readonly PaymentLinkService $paymentLinks;
 
@@ -67,9 +75,19 @@ final class VeliraPayClient
     public readonly CouponService $coupons;
 
     /**
+     * Payouts: what became of each paid charge.
+     */
+    public readonly PayoutService $payouts;
+
+    /**
      * Events: the history of every charge and invoice.
      */
     public readonly EventService $events;
+
+    /**
+     * Webhook endpoints: where webhooks are delivered, and whether they can be.
+     */
+    public readonly WebhookEndpointService $webhookEndpoints;
 
     /**
      * Sends the requests.
@@ -139,11 +157,14 @@ final class VeliraPayClient
         );
 
         $this->account = new AccountService($this->transport);
+        $this->assets = new AssetService($this->transport);
         $this->charges = new ChargeService($this->transport);
         $this->paymentLinks = new PaymentLinkService($this->transport);
         $this->invoices = new InvoiceService($this->transport);
         $this->coupons = new CouponService($this->transport);
+        $this->payouts = new PayoutService($this->transport);
         $this->events = new EventService($this->transport);
+        $this->webhookEndpoints = new WebhookEndpointService($this->transport);
     }
 
     /**
@@ -152,6 +173,14 @@ final class VeliraPayClient
     public function account(): AccountService
     {
         return $this->account;
+    }
+
+    /**
+     * Get the asset endpoint.
+     */
+    public function assets(): AssetService
+    {
+        return $this->assets;
     }
 
     /**
@@ -187,11 +216,27 @@ final class VeliraPayClient
     }
 
     /**
+     * Get the payout endpoints.
+     */
+    public function payouts(): PayoutService
+    {
+        return $this->payouts;
+    }
+
+    /**
      * Get the event endpoints.
      */
     public function events(): EventService
     {
         return $this->events;
+    }
+
+    /**
+     * Get the webhook endpoint endpoints.
+     */
+    public function webhookEndpoints(): WebhookEndpointService
+    {
+        return $this->webhookEndpoints;
     }
 
     /**

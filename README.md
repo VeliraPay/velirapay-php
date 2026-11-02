@@ -4,16 +4,20 @@
 [![Latest version](https://img.shields.io/packagist/v/velirapay/velirapay-php)](https://packagist.org/packages/velirapay/velirapay-php)
 [![License](https://img.shields.io/packagist/l/velirapay/velirapay-php)](LICENSE)
 
-The official PHP library for [VeliraPay](https://velirapay.com), the crypto payment processor. It covers the whole v1 API (charges, payment links, invoices, coupons, events and your account) and verifies the webhooks VeliraPay sends you.
+The official PHP library for [VeliraPay](https://velirapay.com), the crypto payment processor. It covers the v1 API (the coins on offer, charges, invoices, payment links, coupons, payouts, events, webhook endpoints and your account) and verifies the webhooks VeliraPay sends you.
 
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Getting started](#getting-started)
+- [Which one to use](#which-one-to-use)
+- [Supported coins](#supported-coins)
 - [Charges](#charges)
-- [Payment links](#payment-links)
 - [Invoices](#invoices)
+- [Payment links](#payment-links)
 - [Coupons](#coupons)
+- [Payouts](#payouts)
 - [Events](#events)
+- [Webhook endpoints](#webhook-endpoints)
 - [Your account](#your-account)
 - [Lists and pagination](#lists-and-pagination)
 - [Webhooks](#webhooks)
@@ -56,32 +60,72 @@ $charge = $velirapay->charges->create([
     'asset' => 'BTC',
     'customer' => ['email' => 'ada@example.com'],
     'metadata' => ['order_id' => '1042'],
+    'success_url' => 'https://example.com/orders/1042',
 ]);
 
 header('Location: '.$charge->checkoutUrl);
 ```
 
-The customer pays on the hosted checkout page. VeliraPay then tells your server about it with a [webhook](#webhooks).
+That is the way to charge a customer: create a charge with what you already know, and send them to its checkout page. They pay there, and VeliraPay tells your server about it with a [webhook](#webhooks).
 
 Amounts are always strings, such as `'49.90'`, never floats, so no precision is lost. Use [bcmath](https://www.php.net/manual/en/book.bc.php) or a money library to do arithmetic on them.
 
 Each group of endpoints is a property, such as `$velirapay->charges`, and also a method, `$velirapay->charges()`, which facades need.
 
+## Which one to use
+
+| When | Use | |
+| --- | --- | --- |
+| You are asking one customer for one payment | A [charge](#charges) | The default. It has one checkout page for that one payment, with the rate locked for 30 minutes. |
+| The customer should choose the coin, or pays later | An [invoice](#invoices) | It needs their name and email, has no timer, can be itemised and reminded, and lets them pick the coin on its page. |
+| Many customers pay through the same public page | A [payment link](#payment-links), created once | A product sold again and again, a tip jar, a link on your site. |
+
+Do not create a new payment link for each customer or each order.
+
+A charge needs its coin up front, because its exchange rate, amount and deposit address depend on it. Ask the customer, on your own page, and offer them the coins from [`$velirapay->assets->list()`](#supported-coins).
+
+## Supported coins
+
+`assets->list()` gives the coins that can be paid in the key's mode, whether your account takes each, and the lowest price a charge in each can have.
+
+```php
+foreach ($velirapay->assets->list(['currency' => 'EUR']) as $asset) {
+    $asset->id;                // "USDT": what to pass as asset, and $asset->asset() is the Asset case
+    $asset->name;              // "Tether USD"
+    $asset->network;           // "Ethereum (ERC-20)", the network the customer has to send it on
+    $asset->accepted;          // whether your account takes it, which needs a payout address for that network
+    $asset->minimumAmount;     // "10", in the coin, or null when it has no minimum of its own
+    $asset->minimumPrice;      // "8.71", the lowest price in EUR right now
+    $asset->exchangeRate;      // "0.8709"
+    $asset->confirmationWait;  // "about a minute"
+}
+```
+
+USDT and USDC on Ethereum start at 10 of the token, because paying one out costs enough in gas that a smaller payment would leave you with little. A minimum is in the coin, so `minimumPrice` moves a little with the market: leave some room. Below it, `charges->create()` throws a `ValidationException` on `asset`.
+
+Without `currency`, prices are in your account's default currency. The list is not paged.
+
 ## Charges
 
-A charge is one payment in one coin. The exchange rate is locked when it is created, and the customer has 30 minutes to pay.
+A charge is how you ask a customer for a payment, in one coin. The exchange rate is locked when it is created, and the customer has 30 minutes to pay.
 
 ```php
 use VeliraPay\Enums\Asset;
 use VeliraPay\Enums\ChargeStatus;
 
-// For an amount you set.
+// For an amount you set, with whatever you already know.
 $charge = $velirapay->charges->create([
     'amount' => '150.00',
     'currency' => 'USD',
     'asset' => Asset::USDC, // USD Coin on Ethereum
     'description' => 'Pro plan, 1 year',
     'metadata' => ['order_id' => '1042'],
+    'customer' => ['email' => 'ada@example.com', 'name' => 'Ada Lovelace'],
+    'custom_fields' => [['label' => 'Company', 'value' => 'Analytical Engines']], // shown with the charge in the dashboard
+    'success_url' => 'https://example.com/orders/1042', // a button back once they have paid
+    'cancel_url' => 'https://example.com/cart',         // a link back from the checkout
+    'success_message' => 'Thank you, your licence is on its way.', // on the page and in the receipt
+    'send_email' => true,                               // email them the payment page straight away
 ]);
 
 // For one of your payment links: the currency comes from the link, and so does the price when it is fixed.
@@ -103,9 +147,16 @@ $charge->transactions;    // list of VeliraPay\Resources\Transaction
 $charge->metadata;        // ['order_id' => '1042']
 
 $paid = $velirapay->charges->list(['status' => ChargeStatus::Paid]);
+$hers = $velirapay->charges->list(['search' => 'ada@example.com', 'created_from' => '2026-10-01', 'asset' => Asset::BTC]);
+
+// Email the customer the payment page, if you did not pass send_email.
+$velirapay->charges->send('k3v9x2m7q8wz');
 
 // Only while the charge is pending and no transfer to it has been seen.
 $velirapay->charges->cancel('k3v9x2m7q8wz');
+
+// Settle an underpaid charge, or a late payment on an expired or canceled one, for what arrived.
+$velirapay->charges->accept('k3v9x2m7q8wz');
 
 // Record a refund you sent from your own wallet.
 $velirapay->charges->recordRefund('k3v9x2m7q8wz', [
@@ -114,6 +165,8 @@ $velirapay->charges->recordRefund('k3v9x2m7q8wz', [
     'reason' => 'Returned item',
 ]);
 ```
+
+`send()` and `send_email` need a customer email and only work while the charge is pending, or they throw a `ConflictException`. A charge can be emailed once every 10 minutes, and the emails count towards the limits under [Invoices](#invoices).
 
 `asset` takes a `VeliraPay\Enums\Asset` case or its value, such as `'BTC'`. The enum lists every coin the API knows, but not all of them can be paid in at any given time: a coin is only offered while VeliraPay can also pay it out, and a network can be switched off. `$account->acceptedAssets` lists the coins your account takes right now ([Your account](#your-account)); a charge in any other coin throws a `ValidationException`.
 
@@ -152,7 +205,7 @@ Every field is optional, and any other key is refused with a `ValidationExceptio
 
 ## Payment links
 
-A payment link is a reusable checkout page, for a fixed price or one the customer chooses.
+A payment link is one reusable public checkout page, for a fixed price or one the customer chooses, opened by many customers who each pick their own coin. Create it once and share it. To charge one customer, [create a charge](#charges) instead.
 
 ```php
 use VeliraPay\Enums\Asset;
@@ -181,11 +234,13 @@ $tipJar = $velirapay->paymentLinks->create([
 $velirapay->paymentLinks->update($link->id, ['title' => 'Pro plan (yearly)']);
 $velirapay->paymentLinks->archive($link->id); // stops taking payments
 $velirapay->paymentLinks->restore($link->id);
+
+$existing = $velirapay->paymentLinks->list(['status' => 'active', 'search' => 'Pro plan']);
 ```
 
 ## Invoices
 
-An invoice is a bill with a hosted page, where the customer pays in the coin of their choice.
+An invoice is a bill with a hosted page, where the customer pays in the coin of their choice. Use it for a bill to pay later, or when the customer should choose the coin.
 
 ```php
 $invoice = $velirapay->invoices->create([
@@ -205,11 +260,14 @@ echo $invoice->hostedUrl;
 
 $velirapay->invoices->send($invoice->id); // email it, or send a reminder
 $velirapay->invoices->void($invoice->id);
+
+$overdue = $velirapay->invoices->list(['overdue' => true]);
+$hers = $velirapay->invoices->list(['search' => 'grace@example.com']);
 ```
 
 Pass `amount` instead of `items` to bill a single total.
 
-An invoice can be emailed once every 10 minutes, and an account can send 100 emails to customers an hour: invoices, payment requests and refund notices together, shared with the other accounts its owner owns. Past either limit, `send()` throws a `RateLimitException` whose `retryAfter()` says how many seconds to wait, and `create()` with `send_email` throws it and creates nothing. In test mode, invoices are only emailed to members of your account: anyone else is refused with a `ValidationException` on `customer_email`, by `send()` as by `create()` with `send_email`.
+An invoice can be emailed once every 10 minutes, and an account can send 100 emails to customers an hour: invoices, charges emailed to their customers and refund notices together, shared with the other accounts its owner owns. Past either limit, `send()` throws a `RateLimitException` whose `retryAfter()` says how many seconds to wait, and `create()` with `send_email` throws it and creates nothing. In test mode, invoices are only emailed to members of your account: anyone else is refused with a `ValidationException` on `customer_email`, by `send()` as by `create()` with `send_email`.
 
 ## Coupons
 
@@ -230,11 +288,47 @@ $coupon->timesRedeemed;   // how many paid charges used it
 
 $velirapay->coupons->update('SPRING10', ['active' => false]); // pause it
 $velirapay->coupons->delete('SPRING10'); // charges that used it keep its code and their discount
+
+$found = $velirapay->coupons->list(['search' => 'spring']);
 ```
 
 `currency` is required with `amount_off` or `min_amount`, and the coupon then only works on payments in that currency. Once a coupon exists, its code, discount, currency and `min_amount` cannot change: `update()` takes `max_redemptions`, `once_per_customer`, `payment_links` (which replaces the whole list), `active` and `expires_at`.
 
 A coupon that cannot be used throws a `ValidationException` on `coupon` from `charges->create()`, saying why: it does not exist in this mode, is paused, has expired, is limited to other links, is for another currency, needs a higher price, would leave nothing to pay or is used up, or it is once per customer and the charge has no customer email or that customer already used it.
+
+## Payouts
+
+Every paid charge has one payout: what came in, what was kept, what you are owed, what actually landed and the transaction that carried it. These only read: payouts go out on their own, and nothing here can raise, redirect or reverse one.
+
+```php
+use VeliraPay\Enums\Asset;
+use VeliraPay\Enums\PayoutStatus;
+
+$payout = $velirapay->payouts->retrieve('k3v9x2m7q8wz'); // by the charge's id; 404 until it is paid
+
+$payout->status;       // "pending", "sending", "sent", "failed" or "manual"
+$payout->isSent();     // confirmed: the money is in your wallet
+$payout->grossAmount;  // what the customer paid
+$payout->feeAmount;    // what was kept
+$payout->netAmount;    // what you are owed, before the chain's own fee
+$payout->networkFee;   // what the chain charged
+$payout->sentAmount;   // what therefore reached you
+$payout->payoutTxid;   // the transaction, and $payout->explorerUrl its page on a block explorer
+$payout->lastError;    // why the last try did not work, or why it is held
+$payout->nextAttemptAt;
+
+$failed = $velirapay->payouts->list(['status' => PayoutStatus::Failed]);
+$tether = $velirapay->payouts->list(['asset' => Asset::USDT, 'search' => '0x9a4f']); // a charge id or a transaction hash
+
+foreach ($velirapay->payouts->summary() as $coin) {
+    $coin->asset;           // one row per coin you have been paid in
+    $coin->paidOutAmount;   // what has reached you
+    $coin->inFlightAmount;  // what is on its way
+    $coin->owedAmount;      // what has not left yet
+    $coin->feeAmount;
+    $coin->waitingForAddress; // how many payouts wait for you to give an address
+}
+```
 
 ## Events
 
@@ -250,6 +344,22 @@ $event = $velirapay->events->retrieve('9b1f7a3e-2c4d-4e8f-a6b0-1d2c3e4f5a6b');
 $event->is(EventType::ChargePaid);
 $event->details; // what was recorded, such as the amount and txid of a payment or a refund
 $event->charge;  // the charge as it is now, without its timeline
+```
+
+## Webhook endpoints
+
+Endpoints are added and changed in the dashboard, behind your password and a second factor. To see from your code why deliveries are not arriving, list them. Their signing secrets are never returned.
+
+```php
+foreach ($velirapay->webhookEndpoints->list() as $endpoint) {
+    $endpoint->url;
+    $endpoint->events;                // the event types it takes
+    $endpoint->active;
+    $endpoint->verified;              // it receives nothing until it has answered the challenge
+    $endpoint->isReceiving();         // both of those
+    $endpoint->deliveriesCount;       // of the last 30 days
+    $endpoint->failedDeliveriesCount;
+}
 ```
 
 ## Your account
@@ -429,7 +539,7 @@ A failed request throws an exception carrying the API's message:
 | --- | --- |
 | `AuthenticationException` | The API key is missing, wrong or revoked (401). |
 | `NotFoundException` | The object does not exist, or belongs to the other mode (404). |
-| `ConflictException` | The object cannot make that change (409), such as canceling a charge once a transfer to it has been seen or it is no longer pending, or sending or voiding an invoice that is no longer open. Also when the idempotency key was used for a different request, or is held by a request still being processed; that one carries a `Retry-After` and is [retried](#retries-and-idempotency) for you. |
+| `ConflictException` | The object cannot make that change (409), such as canceling a charge once a transfer to it has been seen or it is no longer pending, accepting one that is neither underpaid nor late, paying a live charge by simulation, or sending or voiding an invoice that is no longer open. Also when the idempotency key was used for a different request, or is held by a request still being processed; that one carries a `Retry-After` and is [retried](#retries-and-idempotency) for you. |
 | `ValidationException` | The request has invalid fields (422). `errors()` lists them, such as `coupon` for a coupon that cannot be used. In test mode, an invoice emailed to someone outside your account is refused this way, on `customer_email`. |
 | `RateLimitException` | Too many requests (429), including an invoice emailed again within 10 minutes, more than 100 emails to customers an hour, and more than 300 charges created in 30 minutes. `retryAfter()` says how many seconds to wait. |
 | `ServerException` | VeliraPay had a problem (5xx), such as no exchange rate being available to create a charge with (503). |
@@ -482,7 +592,13 @@ Keys starting with `vp_test_` work in test mode: charges are paid with test coin
 
 ```php
 $velirapay->isTestMode(); // read from the key's prefix
+
+// Pay a test charge without any coins: it becomes paid, and the webhooks and emails go out as for a real payment.
+$velirapay->charges->simulate('k3v9x2m7q8wz');
+$velirapay->charges->simulate('k3v9x2m7q8wz', ['amount' => '0.001']); // less than is due, to try an underpayment
 ```
+
+BNB Chain has no test mode, so its coins can only be used with a live key.
 
 Every key starts with `vp_live_` or `vp_test_`, and the client throws an `InvalidArgumentException` for any other, which the API would refuse.
 

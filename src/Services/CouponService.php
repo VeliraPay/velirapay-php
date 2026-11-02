@@ -56,7 +56,7 @@ final class CouponService extends Service
     /**
      * List coupons, newest first.
      *
-     * @param  array{page?: int, per_page?: int}  $params
+     * @param  array{search?: string, page?: int, per_page?: int}  $params
      * @return Page<Coupon>
      *
      * @throws ApiException
@@ -70,7 +70,7 @@ final class CouponService extends Service
     /**
      * Iterate over every coupon, newest first, fetching pages as they are reached.
      *
-     * @param  array{per_page?: int}  $params
+     * @param  array{search?: string, per_page?: int}  $params
      * @return Generator<int, Coupon>
      *
      * @throws ApiException

@@ -1,0 +1,75 @@
+<?php
+
+declare(strict_types=1);
+
+namespace VeliraPay\Resources;
+
+use DateTimeImmutable;
+
+/**
+ * Where webhooks are delivered, and whether it can receive them. Its signing secret is never returned.
+ */
+final class WebhookEndpoint extends ApiResource
+{
+    /**
+     * Create a new webhook endpoint.
+     *
+     * @param  array<string, mixed>  $attributes
+     * @param  list<string>  $events
+     */
+    public function __construct(
+        array $attributes,
+        /** The endpoint's id. */
+        public readonly string $id,
+        /** Where deliveries go. */
+        public readonly string $url,
+        /** What the merchant noted about it. */
+        public readonly ?string $description,
+        /** The EventType values it subscribes to. */
+        public readonly array $events,
+        /** Whether it is switched on. */
+        public readonly bool $active,
+        /** Whether it has answered the verification challenge; it receives nothing until it has. */
+        public readonly bool $verified,
+        /** How many deliveries are kept for it, from the last 30 days. */
+        public readonly int $deliveriesCount,
+        /** How many of those failed. */
+        public readonly int $failedDeliveriesCount,
+        /** When it last answered the verification challenge. */
+        public readonly ?DateTimeImmutable $verifiedAt,
+        /** When it was added. */
+        public readonly ?DateTimeImmutable $createdAt,
+    ) {
+        parent::__construct($attributes);
+    }
+
+    /**
+     * Create a webhook endpoint from its API attributes.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public static function fromArray(array $data): self
+    {
+        return new self(
+            attributes: $data,
+            id: self::string($data, 'id'),
+            url: self::string($data, 'url'),
+            description: self::nullableString($data, 'description'),
+            events: self::strings($data, 'events'),
+            active: self::bool($data, 'active'),
+            verified: self::bool($data, 'verified'),
+            deliveriesCount: self::int($data, 'deliveries_count'),
+            failedDeliveriesCount: self::int($data, 'failed_deliveries_count'),
+            verifiedAt: self::date($data, 'verified_at'),
+            createdAt: self::date($data, 'created_at'),
+        );
+    }
+
+    /**
+     * Determine whether the endpoint receives deliveries right now.
+     */
+    public function isReceiving(): bool
+    {
+        return $this->active && $this->verified;
+    }
+}

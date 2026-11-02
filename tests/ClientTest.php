@@ -34,10 +34,14 @@ final class ClientTest extends TestCase
         $client = $this->client();
 
         $this->assertSame($client->account, $client->account());
+        $this->assertSame($client->assets, $client->assets());
         $this->assertSame($client->charges, $client->charges());
         $this->assertSame($client->paymentLinks, $client->paymentLinks());
         $this->assertSame($client->invoices, $client->invoices());
+        $this->assertSame($client->coupons, $client->coupons());
+        $this->assertSame($client->payouts, $client->payouts());
         $this->assertSame($client->events, $client->events());
+        $this->assertSame($client->webhookEndpoints, $client->webhookEndpoints());
     }
 
     public function test_the_mode_is_read_from_the_key_prefix(): void

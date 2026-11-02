@@ -2,9 +2,16 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.4.0 - 2026-11-03
 
+- `$velirapay->assets->list()` for the coins on offer and the lowest price each can be charged at, as `SupportedAsset` objects.
+- `$velirapay->payouts`: `list()`, `iterator()`, `retrieve()` by the charge's id and `summary()`, for what became of each paid charge, as `Payout` and `PayoutSummary` objects, with a `PayoutStatus` enum.
+- `$velirapay->webhookEndpoints->list()` to see whether an endpoint can receive deliveries, as `WebhookEndpoint` objects.
+- `$velirapay->charges->send()`, `accept()` and `simulate()`: email a pending charge to its customer, accept an underpaid charge or a late payment as paid, and pay a test charge without coins.
+- `charges->create()` also takes `custom_fields`, `success_url`, `cancel_url`, `success_message` and `send_email`, and `$charge->successUrl`, `cancelUrl` and `successMessage` read them back.
+- New filters on `list()` and `iterator()`: `asset`, `search`, `created_from` and `created_to` for charges, `search` and `overdue` for invoices, `status` and `search` for payment links, and `search` for coupons.
 - `Asset::BNB` and `Asset::USDC_BSC`, for payments on BNB Chain.
+- The README starts from the recommended way to charge a customer: a charge, with what you already know about them, rather than a payment link per customer.
 - `$event->isVerification()`, `$event->challenge()` and `$event->challengeResponse()` for the `webhook.verification` challenge (`Webhook::VERIFICATION_EVENT`) VeliraPay now sends an endpoint when it is added or its URL changes. The endpoint receives nothing else until it answers with the challenge.
 - The README covers the challenge, HTTPS-only endpoints, and the second `v1` signature deliveries carry for a day after the signing secret is rotated.
 

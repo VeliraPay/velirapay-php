@@ -32,6 +32,50 @@ final class ChargeServiceTest extends TestCase
         $this->assertSame('k3v9x2m7q8wz', $charge->id);
     }
 
+    public function test_a_charge_is_created_with_everything_already_known(): void
+    {
+        $this->http->json(['data' => [...self::fixture('charge'), 'success_url' => 'https://example.com/orders/1042', 'cancel_url' => 'https://example.com/cart', 'success_message' => 'Thank you.']], 201);
+
+        $charge = $this->client()->charges->create([
+            'asset' => 'BTC',
+            'amount' => '150.00',
+            'currency' => 'EUR',
+            'custom_fields' => [['label' => 'Company', 'value' => 'Analytical Engines']],
+            'success_url' => 'https://example.com/orders/1042',
+            'cancel_url' => 'https://example.com/cart',
+            'success_message' => 'Thank you.',
+            'send_email' => true,
+        ]);
+
+        $body = self::body($this->http->lastRequest());
+        $this->assertSame([['label' => 'Company', 'value' => 'Analytical Engines']], $body['custom_fields']);
+        $this->assertTrue($body['send_email']);
+        $this->assertSame('https://example.com/orders/1042', $charge->successUrl);
+        $this->assertSame('https://example.com/cart', $charge->cancelUrl);
+        $this->assertSame('Thank you.', $charge->successMessage);
+    }
+
+    public function test_a_charge_can_be_emailed_accepted_and_paid_by_simulation(): void
+    {
+        $this->http->json(['data' => self::fixture('charge')]);
+        $this->client()->charges->send('k3v9x2m7q8wz');
+        $this->assertSame('POST', $this->http->lastRequest()->getMethod());
+        $this->assertSame('/v1/charges/k3v9x2m7q8wz/send', $this->http->lastRequest()->getUri()->getPath());
+
+        $this->http->json(['data' => self::fixture('charge')]);
+        $this->client()->charges->accept('k3v9x2m7q8wz');
+        $this->assertSame('/v1/charges/k3v9x2m7q8wz/accept', $this->http->lastRequest()->getUri()->getPath());
+
+        $this->http->json(['data' => self::fixture('charge')]);
+        $this->client()->charges->simulate('k3v9x2m7q8wz');
+        $this->assertSame('/v1/charges/k3v9x2m7q8wz/simulate', $this->http->lastRequest()->getUri()->getPath());
+        $this->assertSame('', (string) $this->http->lastRequest()->getBody());
+
+        $this->http->json(['data' => self::fixture('charge')]);
+        $this->client()->charges->simulate('k3v9x2m7q8wz', ['amount' => '0.001']);
+        $this->assertSame(['amount' => '0.001'], self::body($this->http->lastRequest()));
+    }
+
     public function test_a_charge_is_read_into_typed_properties(): void
     {
         $this->http->json(['data' => self::fixture('charge')]);

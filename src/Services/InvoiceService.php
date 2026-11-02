@@ -48,7 +48,7 @@ final class InvoiceService extends Service
     /**
      * List invoices, newest first.
      *
-     * @param  array{status?: InvoiceStatus|string, page?: int, per_page?: int}  $params
+     * @param  array{status?: InvoiceStatus|string, search?: string, overdue?: bool, page?: int, per_page?: int}  $params
      * @return Page<Invoice>
      *
      * @throws ApiException
@@ -62,7 +62,7 @@ final class InvoiceService extends Service
     /**
      * Iterate over every invoice, newest first, fetching pages as they are reached.
      *
-     * @param  array{status?: InvoiceStatus|string, per_page?: int}  $params
+     * @param  array{status?: InvoiceStatus|string, search?: string, overdue?: bool, per_page?: int}  $params
      * @return Generator<int, Invoice>
      *
      * @throws ApiException

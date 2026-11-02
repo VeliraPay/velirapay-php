@@ -7,6 +7,7 @@ namespace VeliraPay\Services;
 use DateTimeInterface;
 use Generator;
 use VeliraPay\Enums\Asset;
+use VeliraPay\Enums\PaymentLinkStatus;
 use VeliraPay\Enums\PricingType;
 use VeliraPay\Exceptions\ApiException;
 use VeliraPay\Exceptions\ConnectionException;
@@ -58,7 +59,7 @@ final class PaymentLinkService extends Service
     /**
      * List payment links, newest first.
      *
-     * @param  array{page?: int, per_page?: int}  $params
+     * @param  array{status?: PaymentLinkStatus|string, search?: string, page?: int, per_page?: int}  $params
      * @return Page<PaymentLink>
      *
      * @throws ApiException
@@ -72,7 +73,7 @@ final class PaymentLinkService extends Service
     /**
      * Iterate over every payment link, newest first, fetching pages as they are reached.
      *
-     * @param  array{per_page?: int}  $params
+     * @param  array{status?: PaymentLinkStatus|string, search?: string, per_page?: int}  $params
      * @return Generator<int, PaymentLink>
      *
      * @throws ApiException

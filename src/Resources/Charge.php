@@ -69,7 +69,7 @@ final class Charge extends ApiResource
         public readonly ?string $customerEmail,
         /** The customer's name. */
         public readonly ?string $customerName,
-        /** The customer's answers to the payment link's questions. */
+        /** Labelled details: the customer's answers to the payment link's questions, or what was passed when creating the charge. */
         public readonly array $customFields,
         /** The merchant's own key-value data. */
         public readonly array $metadata,
@@ -88,6 +88,12 @@ final class Charge extends ApiResource
         public readonly ?string $coupon = null,
         /** What the coupon took off, in fiat; fiatAmount is already the lower price. */
         public readonly ?string $discountAmount = null,
+        /** The page the customer is offered a button back to once they have paid; absent from webhooks. */
+        public readonly ?string $successUrl = null,
+        /** The page the customer can go back to from the checkout without paying; absent from webhooks. */
+        public readonly ?string $cancelUrl = null,
+        /** What the customer is told once they have paid; absent from webhooks. */
+        public readonly ?string $successMessage = null,
     ) {
         parent::__construct($attributes);
 
@@ -142,6 +148,9 @@ final class Charge extends ApiResource
             createdAt: self::date($data, 'created_at'),
             coupon: self::nullableString($data, 'coupon'),
             discountAmount: self::nullableString($data, 'discount_amount'),
+            successUrl: self::nullableString($data, 'success_url'),
+            cancelUrl: self::nullableString($data, 'cancel_url'),
+            successMessage: self::nullableString($data, 'success_message'),
         );
     }
 
