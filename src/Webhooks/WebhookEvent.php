@@ -12,6 +12,7 @@ use VeliraPay\Exceptions\InvalidArgumentException;
 use VeliraPay\Resources\ApiResource;
 use VeliraPay\Resources\Charge;
 use VeliraPay\Resources\Invoice;
+use VeliraPay\Resources\Payout;
 use VeliraPay\Resources\Transaction;
 
 /**
@@ -38,12 +39,14 @@ final class WebhookEvent extends ApiResource
         public readonly bool $test,
         /** When the delivery was created. */
         public readonly ?DateTimeImmutable $createdAt,
-        /** The charge, for charge.* events. */
+        /** The charge, for charge.* and payout.* events. */
         public readonly ?Charge $charge,
         /** The invoice, for invoice.* events. */
         public readonly ?Invoice $invoice,
         /** The transfer the event is about, for charge.payment_detected and charge.late_payment. */
         public readonly ?Transaction $transaction = null,
+        /** The payout the event is about, for payout.* events. */
+        public readonly ?Payout $payout = null,
     ) {
         parent::__construct($attributes);
     }
@@ -88,6 +91,7 @@ final class WebhookEvent extends ApiResource
             charge: self::object($objects, 'charge', Charge::fromArray(...)),
             invoice: self::object($objects, 'invoice', Invoice::fromArray(...)),
             transaction: self::object($objects, 'transaction', Transaction::fromArray(...)),
+            payout: self::object($objects, 'payout', Payout::fromArray(...)),
         );
     }
 

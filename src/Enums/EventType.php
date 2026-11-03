@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace VeliraPay\Enums;
 
 /**
- * The events a charge or an invoice reports, through webhooks and the events API.
+ * The events a charge, an invoice or a payout reports, through webhooks and the events API.
  */
 enum EventType: string
 {
@@ -22,4 +22,6 @@ enum EventType: string
     case InvoiceViewed = 'invoice.viewed';
     case InvoicePaid = 'invoice.paid';
     case InvoiceVoided = 'invoice.voided';
+    case PayoutSent = 'payout.sent';
+    case PayoutConfirmed = 'payout.confirmed';
 }

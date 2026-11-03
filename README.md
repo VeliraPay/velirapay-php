@@ -522,6 +522,8 @@ Some things to know:
 
 `charge.payment_detected` arrives as soon as a transfer to a charge is seen on-chain, before it is confirmed; `charge.late_payment` when one reaches a charge that already expired, was canceled or was paid. Both carry that transfer as `$event->transaction` (`txid`, `amount`, `confirmations`, `requiredConfirmations`, `credited`, `explorerUrl`, `seenAt`); for every other event it is `null`.
 
+`payout.sent` arrives when your share of a paid charge has been broadcast, and `payout.confirmed` when the chain has confirmed it. Both carry the charge as `$event->charge` and the payout as `$event->payout`, the same object `$velirapay->payouts->retrieve()` returns; for every other event it is `null`. Book the money on `payout.confirmed`: a broadcast payout can still be dropped or fail and go out again, so `payout.sent` can arrive more than once for a charge. `networkFee` on `payout.sent` can be the most the chain may charge, where `payout.confirmed` has what it took, and a USDT or USDC payout left unmined bids again under a new `payoutTxid`, so the one that counts is the one in `payout.confirmed`.
+
 The charge and invoice in a delivery are not quite the ones the API returns:
 
 - A charge's coin amounts and exchange rate carry all 18 decimal places (`"0.002500000000000000"` rather than `"0.0025"`). Compare amounts as numbers, not as strings.

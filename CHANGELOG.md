@@ -5,6 +5,7 @@ All notable changes to this library are documented here. It follows [Semantic Ve
 ## Unreleased
 
 - `Asset::TRX`, for payments on Tron.
+- `EventType::PayoutSent` and `EventType::PayoutConfirmed` for the `payout.sent` and `payout.confirmed` webhooks, and `$event->payout` with the payout they are about.
 
 ## 0.4.0 - 2026-11-03
 

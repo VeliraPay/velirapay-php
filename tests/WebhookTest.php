@@ -67,6 +67,33 @@ final class WebhookTest extends TestCase
         $this->assertEquals(new DateTimeImmutable('2026-09-20T09:58:12Z'), $transaction->seenAt);
     }
 
+    public function test_a_payout_delivery_carries_the_charge_and_its_payout(): void
+    {
+        $payload = self::payload('webhook_payout');
+
+        $event = Webhook::constructEvent($payload, Webhook::signatureHeader($payload, self::SECRET), self::SECRET);
+
+        $this->assertTrue($event->is(EventType::PayoutConfirmed));
+        $this->assertSame('k3v9x2m7q8wz', $event->charge?->id);
+        $this->assertNull($event->transaction);
+
+        $payout = $event->payout;
+        $this->assertNotNull($payout);
+        $this->assertSame('k3v9x2m7q8wz', $payout->charge);
+        $this->assertTrue($payout->isSent());
+        $this->assertSame('0.002425', $payout->sentAmount);
+        $this->assertSame('0.0000044', $payout->networkFee);
+        $this->assertSame('cc9a3e0b5629235194a6174d805c55df5554c94e2b4de8dc584db2091cc5cacf', $payout->payoutTxid);
+        $this->assertEquals(new DateTimeImmutable('2026-09-20T10:41:02Z'), $payout->confirmedAt);
+    }
+
+    public function test_only_a_payout_delivery_carries_a_payout(): void
+    {
+        $payload = self::payload('webhook_charge');
+
+        $this->assertNull(Webhook::constructEvent($payload, Webhook::signatureHeader($payload, self::SECRET), self::SECRET)->payout);
+    }
+
     public function test_a_signed_invoice_delivery_is_parsed(): void
     {
         $payload = self::payload('webhook_invoice');
