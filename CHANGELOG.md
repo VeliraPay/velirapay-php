@@ -2,6 +2,10 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+- `Asset::TRX`, for payments on Tron.
+
 ## 0.4.0 - 2026-11-03
 
 - `$velirapay->assets->list()` for the coins on offer and the lowest price each can be charged at, as `SupportedAsset` objects.

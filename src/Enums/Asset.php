@@ -19,6 +19,7 @@ enum Asset: string
     case XMR = 'XMR';
     case SOL = 'SOL';
     case BNB = 'BNB';
+    case TRX = 'TRX';
     case USDT = 'USDT';
     case USDC = 'USDC';
     case USDT_TRON = 'USDT_TRON';
