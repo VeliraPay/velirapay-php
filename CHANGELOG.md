@@ -2,7 +2,7 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
-## 0.6.0 - Unreleased
+## 0.6.0 - 2026-11-06
 
 - `$velirapay->account->update()` and `updatePaymentSettings()`, and the plan on every account: `$account->plan`, `feePercent`, `proEndsAt` and `isPro()`.
 - `$velirapay->overview->retrieve()`, `$velirapay->activity->list()` and `iterator()`, and `$velirapay->payoutAddresses`: `list()`, `update()` and `delete()`, as `Overview`, `Activity` and `PayoutAddress` objects.
