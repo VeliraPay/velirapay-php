@@ -400,7 +400,7 @@ $account->termsUrl;
 $account->refundPolicyUrl;
 $account->acceptedAssets; // ['BTC', 'ETH', …], the coins it takes right now, in the key's mode
 $account->mode;           // "live" or "test"
-$account->checkout;      // appearance, coin_order, success_url, cancel_url, success_message, hide_powered_by
+$account->checkout;      // appearance, coin_order, default_coin, success_url, cancel_url, success_message, hide_powered_by
 $account->invoices;      // number_prefix, footer, show_business_details
 $account->checkoutLocale;
 $account->invoiceReminders;

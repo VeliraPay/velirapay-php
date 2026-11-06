@@ -2,6 +2,10 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+- `$account->checkout['default_coin']`: the coin the checkout starts on, or null when the merchant has not picked one (the checkout then starts on Litecoin where it is on offer).
+
 ## 0.6.1 - 2026-11-06
 
 - Account resources expose the current checkout, invoice and payment settings, dark logo and legal links.

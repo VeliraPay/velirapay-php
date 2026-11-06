@@ -67,7 +67,7 @@ final class AccountServiceTest extends TestCase
             'logo_dark_url' => 'https://acme.example/logo-dark.png',
             'terms_url' => 'https://acme.example/terms',
             'refund_policy_url' => 'https://acme.example/refunds',
-            'checkout' => ['appearance' => 'dark', 'coin_order' => ['BTC', 'ETH'], 'success_url' => null, 'cancel_url' => null, 'success_message' => 'Thank you', 'hide_powered_by' => true],
+            'checkout' => ['appearance' => 'dark', 'coin_order' => ['BTC', 'ETH'], 'default_coin' => 'LTC', 'success_url' => null, 'cancel_url' => null, 'success_message' => 'Thank you', 'hide_powered_by' => true],
             'invoices' => ['number_prefix' => 'BILL', 'footer' => 'Thank you', 'show_business_details' => true],
             'checkout_locale' => 'fr',
             'invoice_reminders' => true,
@@ -79,7 +79,7 @@ final class AccountServiceTest extends TestCase
         $this->assertSame('https://acme.example/logo-dark.png', $account->logoDarkUrl);
         $this->assertSame('https://acme.example/terms', $account->termsUrl);
         $this->assertSame('https://acme.example/refunds', $account->refundPolicyUrl);
-        $this->assertSame(['appearance' => 'dark', 'coin_order' => ['BTC', 'ETH'], 'success_url' => null, 'cancel_url' => null, 'success_message' => 'Thank you', 'hide_powered_by' => true], $account->checkout);
+        $this->assertSame(['appearance' => 'dark', 'coin_order' => ['BTC', 'ETH'], 'default_coin' => 'LTC', 'success_url' => null, 'cancel_url' => null, 'success_message' => 'Thank you', 'hide_powered_by' => true], $account->checkout);
         $this->assertSame(['number_prefix' => 'BILL', 'footer' => 'Thank you', 'show_business_details' => true], $account->invoices);
         $this->assertSame('fr', $account->checkoutLocale);
         $this->assertTrue($account->invoiceReminders);

@@ -22,7 +22,7 @@ final class Account extends ApiResource
      *
      * @param  array<string, mixed>  $attributes
      * @param  list<string>  $acceptedAssets
-     * @param  array{appearance?: string, coin_order?: list<string>, success_url?: string|null, cancel_url?: string|null, success_message?: string|null, hide_powered_by?: bool}  $checkout
+     * @param  array{appearance?: string, coin_order?: list<string>, default_coin?: string|null, success_url?: string|null, cancel_url?: string|null, success_message?: string|null, hide_powered_by?: bool}  $checkout
      * @param  array{number_prefix?: string|null, footer?: string|null, show_business_details?: bool}  $invoices
      */
     public function __construct(
@@ -70,7 +70,7 @@ final class Account extends ApiResource
         public readonly ?string $termsUrl = null,
         /** The merchant's refund policy. */
         public readonly ?string $refundPolicyUrl = null,
-        /** The checkout's appearance, coin order and defaults. */
+        /** The checkout's appearance, coin order, default coin and defaults. */
         public readonly array $checkout = [],
         /** The invoice numbering, footer and business details settings. */
         public readonly array $invoices = [],
@@ -124,6 +124,7 @@ final class Account extends ApiResource
             checkout: $checkout === [] ? [] : [
                 'appearance' => self::string($checkout, 'appearance', 'auto'),
                 'coin_order' => self::strings($checkout, 'coin_order'),
+                'default_coin' => self::nullableString($checkout, 'default_coin'),
                 'success_url' => self::nullableString($checkout, 'success_url'),
                 'cancel_url' => self::nullableString($checkout, 'cancel_url'),
                 'success_message' => self::nullableString($checkout, 'success_message'),
