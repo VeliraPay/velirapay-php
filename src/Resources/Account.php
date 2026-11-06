@@ -22,6 +22,8 @@ final class Account extends ApiResource
      *
      * @param  array<string, mixed>  $attributes
      * @param  list<string>  $acceptedAssets
+     * @param  array{appearance?: string, coin_order?: list<string>, success_url?: string|null, cancel_url?: string|null, success_message?: string|null, hide_powered_by?: bool}  $checkout
+     * @param  array{number_prefix?: string|null, footer?: string|null, show_business_details?: bool}  $invoices
      */
     public function __construct(
         array $attributes,
@@ -62,6 +64,22 @@ final class Account extends ApiResource
         public readonly string $feePercent = '0',
         /** When Pro ends, or null while it renews, has no end or the account is on the free plan. */
         public readonly ?DateTimeImmutable $proEndsAt = null,
+        /** The logo customers see on a dark background. */
+        public readonly ?string $logoDarkUrl = null,
+        /** The merchant's terms and conditions. */
+        public readonly ?string $termsUrl = null,
+        /** The merchant's refund policy. */
+        public readonly ?string $refundPolicyUrl = null,
+        /** The checkout's appearance, coin order and defaults. */
+        public readonly array $checkout = [],
+        /** The invoice numbering, footer and business details settings. */
+        public readonly array $invoices = [],
+        /** The fallback checkout language, or null for English. */
+        public readonly ?string $checkoutLocale = null,
+        /** Whether automatic invoice reminders are enabled. */
+        public readonly bool $invoiceReminders = false,
+        /** Whether the owner allows API keys and AI apps to change payout addresses. */
+        public readonly bool $apiPayoutAddressChanges = false,
     ) {
         parent::__construct($attributes);
 
@@ -76,6 +94,9 @@ final class Account extends ApiResource
      */
     public static function fromArray(array $data, array $meta = []): self
     {
+        $checkout = self::map($data, 'checkout');
+        $invoices = self::map($data, 'invoices');
+
         return new self(
             attributes: $data,
             id: self::string($data, 'id'),
@@ -97,6 +118,25 @@ final class Account extends ApiResource
             plan: self::string(self::map($data, 'plan'), 'name', 'free'),
             feePercent: self::string(self::map($data, 'plan'), 'fee_percent', '0'),
             proEndsAt: self::date(self::map($data, 'plan'), 'pro_ends_at'),
+            logoDarkUrl: self::nullableString($data, 'logo_dark_url'),
+            termsUrl: self::nullableString($data, 'terms_url'),
+            refundPolicyUrl: self::nullableString($data, 'refund_policy_url'),
+            checkout: $checkout === [] ? [] : [
+                'appearance' => self::string($checkout, 'appearance', 'auto'),
+                'coin_order' => self::strings($checkout, 'coin_order'),
+                'success_url' => self::nullableString($checkout, 'success_url'),
+                'cancel_url' => self::nullableString($checkout, 'cancel_url'),
+                'success_message' => self::nullableString($checkout, 'success_message'),
+                'hide_powered_by' => self::bool($checkout, 'hide_powered_by'),
+            ],
+            invoices: $invoices === [] ? [] : [
+                'number_prefix' => self::nullableString($invoices, 'number_prefix'),
+                'footer' => self::nullableString($invoices, 'footer'),
+                'show_business_details' => self::bool($invoices, 'show_business_details'),
+            ],
+            checkoutLocale: self::nullableString($data, 'checkout_locale'),
+            invoiceReminders: self::bool($data, 'invoice_reminders'),
+            apiPayoutAddressChanges: self::bool($data, 'api_payout_address_changes'),
         );
     }
 

@@ -2,6 +2,12 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+- Account resources expose the current checkout, invoice and payment settings, dark logo and legal links.
+- Negative webhook signature tolerances are rejected instead of silently disabling replay protection.
+- Corrected the guidance for secret-bearing idempotent responses, charge email validation and unpaged lists.
+
 ## 0.6.0 - 2026-11-06
 
 - `$velirapay->account->update()` and `updatePaymentSettings()`, and the plan on every account: `$account->plan`, `feePercent`, `proEndsAt` and `isPro()`.

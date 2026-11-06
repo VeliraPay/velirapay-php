@@ -166,7 +166,7 @@ $velirapay->charges->recordRefund('k3v9x2m7q8wz', [
 ]);
 ```
 
-`send()` and `send_email` need a customer email and only work while the charge is pending, or they throw a `ConflictException`. A charge can be emailed once every 10 minutes, and the emails count towards the limits under [Invoices](#invoices).
+`send()` needs a customer email and only works while the charge is pending, or it throws a `ConflictException`. Creating a charge with `send_email` but no customer email throws a `ValidationException` on `customer_email` and creates nothing. A charge can be emailed once every 10 minutes, and the emails count towards the limits under [Invoices](#invoices). In test mode, charge emails can only go to members of your account.
 
 `asset` takes a `VeliraPay\Enums\Asset` case or its value, such as `'BTC'`. The enum lists every coin the API knows, but not all of them can be paid in at any given time: a coin is only offered while VeliraPay can also pay it out, and a network can be switched off. `$account->acceptedAssets` lists the coins your account takes right now ([Your account](#your-account)); a charge in any other coin throws a `ValidationException`.
 
@@ -395,8 +395,16 @@ $account = $velirapay->account->retrieve();
 $account->displayName;
 $account->supportEmail;
 $account->supportPhone;   // "+442071234567", shown to customers next to the support email
+$account->logoDarkUrl;    // the logo for a dark background, or null
+$account->termsUrl;
+$account->refundPolicyUrl;
 $account->acceptedAssets; // ['BTC', 'ETH', …], the coins it takes right now, in the key's mode
 $account->mode;           // "live" or "test"
+$account->checkout;      // appearance, coin_order, success_url, cancel_url, success_message, hide_powered_by
+$account->invoices;      // number_prefix, footer, show_business_details
+$account->checkoutLocale;
+$account->invoiceReminders;
+$account->apiPayoutAddressChanges; // whether the owner allows remote payout address changes
 
 $business = $account->business; // as entered under Business details in the dashboard's settings
 $business->type;                // a VeliraPay\Enums\BusinessType, such as BusinessType::Company
@@ -466,7 +474,7 @@ $payment->checkoutUrl; // where to pay a month of Pro
 
 ## Lists and pagination
 
-`list()` returns one page, newest first. Pass `page` and `per_page` (up to 100, 25 by default) to move through it:
+Paged `list()` methods return one page, newest first (members are oldest first). Assets, payout addresses and payout summaries return plain arrays. Pass `page` and `per_page` (up to 100, 25 by default) to move through a paged list:
 
 ```php
 $page = $velirapay->charges->list(['per_page' => 100]);
@@ -595,7 +603,7 @@ Some things to know:
 - **Fulfil once.** A paid invoice sends both `charge.paid`, for the charge that paid it, and `invoice.paid`. Fulfil on one of them, not both.
 - **Deliveries can arrive out of order.** When the order matters, fetch the current state with `$velirapay->charges->retrieve($event->charge->id)` rather than trusting the payload.
 - **Test deliveries.** The dashboard's "Send test event" button sends a sample `charge.paid` with `$event->test` set to `true` and no `eventId`. Its charge is a made-up sample without many of a real one's fields, such as `transactions` and `customer`.
-- **Signatures expire.** A signature older than 5 minutes is rejected, which stops an intercepted delivery from being replayed. Change the limit with the `tolerance` argument.
+- **Signatures expire.** A signature more than 5 minutes from the current time is rejected, which stops an intercepted delivery from being replayed. Change the limit with the non-negative `tolerance` argument; `0` explicitly disables the age check.
 
 `charge.payment_detected` arrives as soon as a transfer to a charge is seen on-chain, before it is confirmed; `charge.late_payment` when one reaches a charge that already expired, was canceled or was paid. Both carry that transfer as `$event->transaction` (`txid`, `amount`, `confirmations`, `requiredConfirmations`, `credited`, `explorerUrl`, `seenAt`); for every other event it is `null`.
 
@@ -660,7 +668,8 @@ $velirapay->lastResponse()?->wasReplayed(); // true when the API answered from a
 
 What the API does with a key:
 
-- Only a successful (2xx) response is stored, and it is replayed for 24 hours to any request repeating the key. A request that failed stored nothing, so repeating it runs it again.
+- Successful (2xx) responses are replayed for 24 hours to requests repeating the key. A request that failed stores nothing, so repeating it runs it again.
+- An answer that carries a new API key or webhook signing secret is never stored. Creating a key or endpoint, or rotating an endpoint's secret, succeeds once; repeating its idempotency key throws a `ConflictException` saying the request already succeeded. If the first answer was lost, list the created objects and recover through revoking the key or rotating the endpoint's secret, instead of blindly repeating with a new idempotency key.
 - A key is at most 255 characters; a longer one is refused with a 400.
 - A key covers one account, one mode, one HTTP method and one path. Every API key of that account and mode shares it, so two servers using different API keys still create one charge for one idempotency key.
 - Reusing a key with a different body or query string throws a `ConflictException`.

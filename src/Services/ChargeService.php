@@ -21,7 +21,7 @@ final class ChargeService extends Service
     /**
      * Charge a customer: create a charge with what you already know about them, and send them to its checkout URL.
      *
-     * @param  array{asset: Asset|string, amount?: numeric-string|int|float, currency?: string, payment_link?: string, customer?: array{email?: string, name?: string, ip_address?: string, user_agent?: string, reference?: string, phone?: string, country?: string, metadata?: array<string, scalar|null>}, customer_email?: string, coupon?: string, description?: string, metadata?: array<string, scalar|null>, custom_fields?: list<array{label: string, value: string}>, success_url?: string, cancel_url?: string, success_message?: string, send_email?: bool}  $params
+     * @param  array{asset: Asset|string, amount?: numeric-string|int|float, currency?: string, payment_link?: string|null, customer?: array{email?: string|null, name?: string|null, ip_address?: string|null, user_agent?: string|null, reference?: string|null, phone?: string|null, country?: string|null, metadata?: array<string, scalar|null>|null}|null, customer_email?: string|null, coupon?: string|null, description?: string|null, metadata?: array<string, scalar|null>|null, custom_fields?: list<array{label: string, value: string}>|null, success_url?: string|null, cancel_url?: string|null, success_message?: string|null, send_email?: bool}  $params
      *
      * @throws ApiException
      * @throws ConnectionException
@@ -84,7 +84,7 @@ final class ChargeService extends Service
     /**
      * Record a refund you sent the customer from your own wallet.
      *
-     * @param  array{amount: numeric-string|int|float, txid?: string, reason?: string}  $params
+     * @param  array{amount: numeric-string|int|float, txid?: string|null, reason?: string|null}  $params
      *
      * @throws ApiException
      * @throws ConnectionException
@@ -119,7 +119,7 @@ final class ChargeService extends Service
     /**
      * Pay a test-mode charge without coins, in full or by a chosen amount in the charge's coin.
      *
-     * @param  array{amount?: numeric-string|int|float}  $params
+     * @param  array{amount?: numeric-string|int|float|null}  $params
      *
      * @throws ApiException
      * @throws ConnectionException

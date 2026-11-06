@@ -45,7 +45,7 @@ final class Webhook
      * @param  string  $payload  The raw request body, exactly as received.
      * @param  string|null  $signatureHeader  The X-VeliraPay-Signature header.
      * @param  string  $secret  The endpoint's signing secret, starting with "whsec_".
-     * @param  int  $tolerance  How many seconds old a signature may be; 0 accepts any age.
+     * @param  int  $tolerance  How many seconds old a signature may be; 0 accepts any age and negative values are invalid.
      *
      * @throws SignatureVerificationException
      * @throws InvalidArgumentException
@@ -76,6 +76,10 @@ final class Webhook
      */
     public static function verifySignature(string $payload, ?string $signatureHeader, #[SensitiveParameter] string $secret, int $tolerance = self::DEFAULT_TOLERANCE, ?int $now = null): void
     {
+        if ($tolerance < 0) {
+            throw new InvalidArgumentException('The webhook signature tolerance cannot be negative.');
+        }
+
         if (trim($secret) === '') {
             throw new InvalidArgumentException('A webhook signing secret is required. Copy it from the webhook endpoint in the dashboard.');
         }

@@ -57,6 +57,54 @@ final class AccountServiceTest extends TestCase
         $this->assertSame('+442071234500', $business->phone);
     }
 
+    /**
+     * Account settings returned by the API are available without raw attribute access.
+     */
+    public function test_account_checkout_invoice_and_payment_settings_are_read(): void
+    {
+        $this->http->json(['data' => [
+            'id' => 'acme',
+            'logo_dark_url' => 'https://acme.example/logo-dark.png',
+            'terms_url' => 'https://acme.example/terms',
+            'refund_policy_url' => 'https://acme.example/refunds',
+            'checkout' => ['appearance' => 'dark', 'coin_order' => ['BTC', 'ETH'], 'success_url' => null, 'cancel_url' => null, 'success_message' => 'Thank you', 'hide_powered_by' => true],
+            'invoices' => ['number_prefix' => 'BILL', 'footer' => 'Thank you', 'show_business_details' => true],
+            'checkout_locale' => 'fr',
+            'invoice_reminders' => true,
+            'api_payout_address_changes' => true,
+        ]]);
+
+        $account = $this->client()->account->retrieve();
+
+        $this->assertSame('https://acme.example/logo-dark.png', $account->logoDarkUrl);
+        $this->assertSame('https://acme.example/terms', $account->termsUrl);
+        $this->assertSame('https://acme.example/refunds', $account->refundPolicyUrl);
+        $this->assertSame(['appearance' => 'dark', 'coin_order' => ['BTC', 'ETH'], 'success_url' => null, 'cancel_url' => null, 'success_message' => 'Thank you', 'hide_powered_by' => true], $account->checkout);
+        $this->assertSame(['number_prefix' => 'BILL', 'footer' => 'Thank you', 'show_business_details' => true], $account->invoices);
+        $this->assertSame('fr', $account->checkoutLocale);
+        $this->assertTrue($account->invoiceReminders);
+        $this->assertTrue($account->apiPayoutAddressChanges);
+    }
+
+    /**
+     * Older or partial responses keep their account settings optional.
+     */
+    public function test_missing_account_settings_have_safe_defaults(): void
+    {
+        $this->http->json(['data' => ['id' => 'acme']]);
+
+        $account = $this->client()->account->retrieve();
+
+        $this->assertNull($account->logoDarkUrl);
+        $this->assertNull($account->termsUrl);
+        $this->assertNull($account->refundPolicyUrl);
+        $this->assertSame([], $account->checkout);
+        $this->assertSame([], $account->invoices);
+        $this->assertNull($account->checkoutLocale);
+        $this->assertFalse($account->invoiceReminders);
+        $this->assertFalse($account->apiPayoutAddressChanges);
+    }
+
     public function test_business_details_that_are_unset_or_unknown_to_this_library_are_null(): void
     {
         $this->http->json(['data' => ['id' => 'acme', 'business' => ['type' => 'cooperative', 'industry' => null]], 'meta' => []]);

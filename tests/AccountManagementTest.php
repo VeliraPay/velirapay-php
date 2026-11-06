@@ -13,7 +13,8 @@ final class AccountManagementTest extends TestCase
 {
     public function test_the_account_and_its_payment_settings_are_changed(): void
     {
-        $account = self::fixture('account');
+        $account = self::fixture('account')['data'];
+        $this->assertIsArray($account);
         $this->http->json(['data' => [...$account, 'display_name' => 'Acme', 'plan' => ['name' => 'pro', 'fee_percent' => '0', 'pro_ends_at' => '2026-12-06T00:00:00.000000Z']], 'meta' => ['mode' => 'live', 'accepted_assets' => ['BTC']]]);
 
         $updated = $this->client()->account->update(['display_name' => 'Acme']);

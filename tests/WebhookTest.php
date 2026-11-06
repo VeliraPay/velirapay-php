@@ -169,6 +169,20 @@ final class WebhookTest extends TestCase
     }
 
     /**
+     * A negative tolerance must not disable replay protection.
+     */
+    public function test_a_negative_signature_tolerance_is_a_configuration_error(): void
+    {
+        $payload = self::payload('webhook_charge');
+        $header = Webhook::signatureHeader($payload, self::SECRET, 1790000000);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('tolerance cannot be negative');
+
+        Webhook::verifySignature($payload, $header, self::SECRET, tolerance: -1, now: 1790000301);
+    }
+
+    /**
      * @return iterable<string, array{string|null, string}>
      */
     public static function malformedHeaders(): iterable
