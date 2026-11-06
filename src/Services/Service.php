@@ -42,6 +42,62 @@ abstract class Service
     }
 
     /**
+     * Send a request and return the whole response, for answers whose meta matters too.
+     *
+     * @param  array<string, mixed>|null  $body
+     *
+     * @throws ApiException
+     * @throws ConnectionException
+     */
+    protected function respond(string $method, string $path, ?array $body = null, ?string $idempotencyKey = null): ApiResponse
+    {
+        return $this->transport->request($method, $path, [], $body, $idempotencyKey);
+    }
+
+    /**
+     * Read what is under a response's "meta" key.
+     *
+     * @return array<string, mixed>
+     */
+    protected static function meta(ApiResponse $response): array
+    {
+        $meta = $response->json()['meta'] ?? null;
+
+        /** @var array<string, mixed> */
+        return is_array($meta) ? $meta : [];
+    }
+
+    /**
+     * Read the list under a response's "data" key that is not paged.
+     *
+     * @template TResource of ApiResource
+     *
+     * @param  Closure(array<string, mixed>): TResource  $hydrate
+     * @return list<TResource>
+     *
+     * @throws UnexpectedResponseException
+     */
+    protected static function items(ApiResponse $response, Closure $hydrate): array
+    {
+        $data = $response->json()['data'] ?? null;
+
+        if (! is_array($data)) {
+            throw new UnexpectedResponseException('The VeliraPay API answered without the list it was asked for.', $response);
+        }
+
+        $items = [];
+
+        foreach ($data as $item) {
+            if (is_array($item)) {
+                /** @var array<string, mixed> $item */
+                $items[] = $hydrate($item);
+            }
+        }
+
+        return $items;
+    }
+
+    /**
      * Read the object under a response's "data" key.
      *
      * @return array<string, mixed>

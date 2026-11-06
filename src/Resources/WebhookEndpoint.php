@@ -7,7 +7,7 @@ namespace VeliraPay\Resources;
 use DateTimeImmutable;
 
 /**
- * Where webhooks are delivered, and whether it can receive them. Its signing secret is never returned.
+ * Where webhooks are delivered, and whether it can receive them. Its signing secret is only returned when it is added or rotated.
  */
 final class WebhookEndpoint extends ApiResource
 {
@@ -39,16 +39,21 @@ final class WebhookEndpoint extends ApiResource
         public readonly ?DateTimeImmutable $verifiedAt,
         /** When it was added. */
         public readonly ?DateTimeImmutable $createdAt,
+        /** The signing secret, only in the answers that add the endpoint or rotate it. */
+        public readonly ?string $secret = null,
+        /** Why the endpoint did not answer the verification challenge, in the answers that sent it one. */
+        public readonly ?string $verificationError = null,
     ) {
         parent::__construct($attributes);
     }
 
     /**
-     * Create a webhook endpoint from its API attributes.
+     * Create a webhook endpoint from its API attributes and the response's meta.
      *
      * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>  $meta
      */
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data, array $meta = []): self
     {
         return new self(
             attributes: $data,
@@ -62,6 +67,8 @@ final class WebhookEndpoint extends ApiResource
             failedDeliveriesCount: self::int($data, 'failed_deliveries_count'),
             verifiedAt: self::date($data, 'verified_at'),
             createdAt: self::date($data, 'created_at'),
+            secret: self::nullableString($data, 'secret'),
+            verificationError: self::nullableString($meta, 'verification_error'),
         );
     }
 

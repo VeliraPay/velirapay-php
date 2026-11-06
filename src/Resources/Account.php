@@ -56,6 +56,12 @@ final class Account extends ApiResource
         /** The phone number customers see next to the support email. */
         public readonly ?string $supportPhone = null,
         ?AccountBusiness $business = null,
+        /** "free" or "pro". */
+        public readonly string $plan = 'free',
+        /** The share of each payment kept as the platform's fee, in percent. */
+        public readonly string $feePercent = '0',
+        /** When Pro ends, or null while it renews, has no end or the account is on the free plan. */
+        public readonly ?DateTimeImmutable $proEndsAt = null,
     ) {
         parent::__construct($attributes);
 
@@ -88,7 +94,18 @@ final class Account extends ApiResource
             acceptedAssets: self::strings($meta, 'accepted_assets'),
             supportPhone: self::nullableString($data, 'support_phone'),
             business: AccountBusiness::fromArray(self::map($data, 'business')),
+            plan: self::string(self::map($data, 'plan'), 'name', 'free'),
+            feePercent: self::string(self::map($data, 'plan'), 'fee_percent', '0'),
+            proEndsAt: self::date(self::map($data, 'plan'), 'pro_ends_at'),
         );
+    }
+
+    /**
+     * Determine whether the account is on Pro, which keeps no fee.
+     */
+    public function isPro(): bool
+    {
+        return $this->plan === 'pro';
     }
 
     /**

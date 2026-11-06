@@ -348,7 +348,7 @@ $event->charge;  // the charge as it is now, without its timeline
 
 ## Webhook endpoints
 
-Endpoints are added and changed in the dashboard, behind your password and a second factor. To see from your code why deliveries are not arriving, list them. Their signing secrets are never returned.
+List them to see from your code why deliveries are not arriving:
 
 ```php
 foreach ($velirapay->webhookEndpoints->list() as $endpoint) {
@@ -360,6 +360,31 @@ foreach ($velirapay->webhookEndpoints->list() as $endpoint) {
     $endpoint->deliveriesCount;       // of the last 30 days
     $endpoint->failedDeliveriesCount;
 }
+
+foreach ($velirapay->webhookEndpoints->deliveries('12', ['status' => 'failed']) as $delivery) {
+    $delivery->event;          // "charge.paid"
+    $delivery->responseStatus; // what the endpoint last answered
+    $delivery->error;
+}
+```
+
+A key with the sensitive `webhook_endpoints:write` permission ticked can also add and change them. A new endpoint is sent its verification challenge at once, and the answer that adds it, or rotates its secret, is the only one that carries the signing secret:
+
+```php
+$endpoint = $velirapay->webhookEndpoints->create([
+    'url' => 'https://example.com/webhooks/velirapay',
+    'events' => ['charge.paid', 'invoice.paid'],
+]);
+
+$endpoint->secret;            // "whsec_…", store it now: it is never returned again
+$endpoint->verificationError; // null once the endpoint answered the challenge
+
+$velirapay->webhookEndpoints->update('12', ['active' => false]);
+$velirapay->webhookEndpoints->verify('12');               // send the challenge again
+$velirapay->webhookEndpoints->test('12');                 // a sample charge.paid, marked test
+$velirapay->webhookEndpoints->rotateSecret('12')->secret; // the old one keeps signing for a day
+$velirapay->webhookEndpoints->retryDelivery('12', $delivery->id);
+$velirapay->webhookEndpoints->delete('12');
 ```
 
 ## Your account
@@ -386,6 +411,58 @@ $business->phone;               // in international format
 ```
 
 Every business field is `null` until it is filled in. `type`, `industry` and `monthlyVolume` are also `null` for a value the API adds after this version of the library; `$business->get('industry')` still returns it as sent.
+
+The plan is on the account too: `$account->plan` ("free" or "pro"), `$account->feePercent` and `$account->proEndsAt`, with `$account->isPro()`.
+
+A key with the sensitive `account:write` or `payment_settings:write` permission can change the account, in the shape it is read in, with `null` to clear a field:
+
+```php
+$velirapay->account->update(['display_name' => 'Acme', 'checkout' => ['appearance' => 'dark']]);
+$velirapay->account->updatePaymentSettings(['underpayment_tolerance' => '2', 'invoice_reminders' => true]);
+```
+
+### Overview and activity
+
+```php
+$overview = $velirapay->overview->retrieve(); // the dashboard's last 30 days; needs overview:read
+$overview->volume;                             // in $overview->currency
+$overview->paidCharges;
+$overview->get('attention');                   // what needs a person now
+
+foreach ($velirapay->activity->list(['action' => 'sensitive']) as $entry) { // needs activity:read
+    $entry->action;    // "api_key.created"
+    $entry->actor;     // a member's name, or 'API key "Shop server"'
+    $entry->ipAddress;
+}
+```
+
+### Payout addresses
+
+```php
+foreach ($velirapay->payoutAddresses->list() as $address) { // needs payout_addresses:read
+    $address->network; // "bitcoin", "evm", …
+    $address->address; // null while there is none: payouts in its coins wait for one
+}
+
+$velirapay->payoutAddresses->update('bitcoin', ['address' => 'bc1q…']);
+```
+
+With one entry per network, this `list()` returns a plain array rather than a page. Changing one needs the sensitive `payout_addresses:write` permission and an owner switching on "Let API keys and AI apps change payout addresses" under Payment settings. Owners and admins are emailed about every change, and payouts to a new address wait 48 hours once the account has been paid out.
+
+### API keys, members and Pro
+
+```php
+$apiKey = $velirapay->apiKeys->create(['name' => 'Shop server', 'permissions' => ['charges:read', 'charges:write']]);
+$apiKey->key; // "vp_live_…", shown this once
+
+$velirapay->invitations->create(['email' => 'grace@example.com', 'role' => 'admin']);
+$velirapay->members->update('3', ['role' => 'member']);
+
+$payment = $velirapay->billing->startProPayment(['asset' => 'BTC']); // with a live key
+$payment->checkoutUrl; // where to pay a month of Pro
+```
+
+`api_keys:read`, `api_keys:write`, `members:read` and `members:write` are sensitive. A key can make or change no key with a permission or an IP address it does not have itself, nor touch a key that reaches further. Only a key an owner made changes a role or removes a member, and owners are never changed this way. `billing:write` comes with full access.
 
 ## Lists and pagination
 
@@ -540,6 +617,7 @@ A failed request throws an exception carrying the API's message:
 | Exception | When |
 | --- | --- |
 | `AuthenticationException` | The API key is missing, wrong or revoked (401). |
+| `PermissionException` | The API key may not do this (403): a restricted key without the permission the endpoint needs, such as `charges:write`, or a key used from an IP address it does not allow. The message names which. An owner or admin can change the key's permissions and addresses in the dashboard; the key itself stays the same. |
 | `NotFoundException` | The object does not exist, or belongs to the other mode (404). |
 | `ConflictException` | The object cannot make that change (409), such as canceling a charge once a transfer to it has been seen or it is no longer pending, accepting one that is neither underpaid nor late, paying a live charge by simulation, or sending or voiding an invoice that is no longer open. Also when the idempotency key was used for a different request, or is held by a request still being processed; that one carries a `Retry-After` and is [retried](#retries-and-idempotency) for you. |
 | `ValidationException` | The request has invalid fields (422). `errors()` lists them, such as `coupon` for a coupon that cannot be used. In test mode, an invoice emailed to someone outside your account is refused this way, on `customer_email`. |

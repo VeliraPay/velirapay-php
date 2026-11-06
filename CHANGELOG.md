@@ -2,6 +2,16 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## 0.6.0 - Unreleased
+
+- `$velirapay->account->update()` and `updatePaymentSettings()`, and the plan on every account: `$account->plan`, `feePercent`, `proEndsAt` and `isPro()`.
+- `$velirapay->overview->retrieve()`, `$velirapay->activity->list()` and `iterator()`, and `$velirapay->payoutAddresses`: `list()`, `update()` and `delete()`, as `Overview`, `Activity` and `PayoutAddress` objects.
+- `$velirapay->webhookEndpoints`: `retrieve()`, `create()`, `update()`, `delete()`, `verify()`, `test()`, `rotateSecret()`, `deliveries()` and `retryDelivery()`. `$endpoint->secret` carries the signing secret in the answers that add or rotate it, and `$endpoint->verificationError` says why one did not answer the challenge. Deliveries are `WebhookDelivery` objects.
+- `$velirapay->apiKeys`: `list()`, `iterator()`, `create()`, `update()` and `revoke()`, as `ApiKey` objects; `$apiKey->key` is only in the answer that creates it.
+- `$velirapay->members` (`list()`, `iterator()`, `update()`, `remove()`) and `$velirapay->invitations` (`list()`, `iterator()`, `create()`, `cancel()`), as `Member` and `Invitation` objects.
+- `$velirapay->billing->startProPayment()` for a month of Pro in crypto, as a `ProPayment`.
+- Most of these need a permission ticked on a restricted key; the README says which.
+
 ## 0.5.0 - 2026-11-03
 
 - `Asset::TRX`, for payments on Tron.

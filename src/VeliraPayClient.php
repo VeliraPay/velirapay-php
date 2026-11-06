@@ -20,12 +20,19 @@ use VeliraPay\Exceptions\InvalidArgumentException;
 use VeliraPay\Http\ApiResponse;
 use VeliraPay\Http\HttpTransport;
 use VeliraPay\Services\AccountService;
+use VeliraPay\Services\ActivityService;
+use VeliraPay\Services\ApiKeyService;
 use VeliraPay\Services\AssetService;
+use VeliraPay\Services\BillingService;
 use VeliraPay\Services\ChargeService;
 use VeliraPay\Services\CouponService;
 use VeliraPay\Services\EventService;
+use VeliraPay\Services\InvitationService;
 use VeliraPay\Services\InvoiceService;
+use VeliraPay\Services\MemberService;
+use VeliraPay\Services\OverviewService;
 use VeliraPay\Services\PaymentLinkService;
+use VeliraPay\Services\PayoutAddressService;
 use VeliraPay\Services\PayoutService;
 use VeliraPay\Services\WebhookEndpointService;
 
@@ -37,7 +44,7 @@ final class VeliraPayClient
     /**
      * The version of this library.
      */
-    public const VERSION = '0.5.0';
+    public const VERSION = '0.6.0';
 
     /**
      * The address of the VeliraPay API.
@@ -88,6 +95,41 @@ final class VeliraPayClient
      * Webhook endpoints: where webhooks are delivered, and whether they can be.
      */
     public readonly WebhookEndpointService $webhookEndpoints;
+
+    /**
+     * The overview: the dashboard's figures for the last 30 days.
+     */
+    public readonly OverviewService $overview;
+
+    /**
+     * Payout addresses: where the account's payouts go on each network.
+     */
+    public readonly PayoutAddressService $payoutAddresses;
+
+    /**
+     * The activity log: everything done in the account, and who did it.
+     */
+    public readonly ActivityService $activity;
+
+    /**
+     * API keys: the account's keys, never reaching further than the one asking.
+     */
+    public readonly ApiKeyService $apiKeys;
+
+    /**
+     * Members: the people in the account and their roles.
+     */
+    public readonly MemberService $members;
+
+    /**
+     * Invitations: who has been asked to join and has not yet.
+     */
+    public readonly InvitationService $invitations;
+
+    /**
+     * Billing: paying for Pro in crypto.
+     */
+    public readonly BillingService $billing;
 
     /**
      * Sends the requests.
@@ -165,6 +207,13 @@ final class VeliraPayClient
         $this->payouts = new PayoutService($this->transport);
         $this->events = new EventService($this->transport);
         $this->webhookEndpoints = new WebhookEndpointService($this->transport);
+        $this->overview = new OverviewService($this->transport);
+        $this->payoutAddresses = new PayoutAddressService($this->transport);
+        $this->activity = new ActivityService($this->transport);
+        $this->apiKeys = new ApiKeyService($this->transport);
+        $this->members = new MemberService($this->transport);
+        $this->invitations = new InvitationService($this->transport);
+        $this->billing = new BillingService($this->transport);
     }
 
     /**
@@ -237,6 +286,62 @@ final class VeliraPayClient
     public function webhookEndpoints(): WebhookEndpointService
     {
         return $this->webhookEndpoints;
+    }
+
+    /**
+     * Get the overview endpoint.
+     */
+    public function overview(): OverviewService
+    {
+        return $this->overview;
+    }
+
+    /**
+     * Get the payout address endpoints.
+     */
+    public function payoutAddresses(): PayoutAddressService
+    {
+        return $this->payoutAddresses;
+    }
+
+    /**
+     * Get the activity log endpoint.
+     */
+    public function activity(): ActivityService
+    {
+        return $this->activity;
+    }
+
+    /**
+     * Get the API key endpoints.
+     */
+    public function apiKeys(): ApiKeyService
+    {
+        return $this->apiKeys;
+    }
+
+    /**
+     * Get the member endpoints.
+     */
+    public function members(): MemberService
+    {
+        return $this->members;
+    }
+
+    /**
+     * Get the invitation endpoints.
+     */
+    public function invitations(): InvitationService
+    {
+        return $this->invitations;
+    }
+
+    /**
+     * Get the billing endpoints.
+     */
+    public function billing(): BillingService
+    {
+        return $this->billing;
     }
 
     /**
