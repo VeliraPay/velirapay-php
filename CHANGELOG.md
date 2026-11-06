@@ -2,7 +2,7 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.6.1 - 2026-11-06
 
 - Account resources expose the current checkout, invoice and payment settings, dark logo and legal links.
 - Negative webhook signature tolerances are rejected instead of silently disabling replay protection.
