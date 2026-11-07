@@ -9,7 +9,7 @@ use VeliraPay\Enums\Industry;
 use VeliraPay\Enums\MonthlyVolume;
 
 /**
- * Who runs an account and what it sells, as entered under Business details in its settings.
+ * Who runs an account and what it sells, as entered under Business details in its settings. The API only sends it to a key with the sensitive account:write permission: for any other key every field is null.
  */
 final class AccountBusiness extends ApiResource
 {

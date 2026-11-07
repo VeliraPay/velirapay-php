@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace VeliraPay\Tests;
 
 use GuzzleHttp\Psr7\Response;
+use VeliraPay\Enums\ApiKeyPermission;
 
 final class ApiKeyServiceTest extends TestCase
 {
@@ -27,6 +28,18 @@ final class ApiKeyServiceTest extends TestCase
         $this->assertSame(['charges:read'], $apiKey->permissions);
         $this->assertSame(['203.0.113.7'], $apiKey->allowedIps);
         $this->assertFalse($apiKey->hasFullAccess());
+    }
+
+    public function test_permissions_are_sent_as_their_values_whether_given_as_cases_or_strings(): void
+    {
+        $this->http->json(['data' => [
+            'id' => '43', 'object' => 'api_key', 'name' => 'Books', 'prefix' => 'vp_live_9Lr3', 'key' => 'vp_live_9Lr3abc',
+            'mode' => 'live', 'permissions' => ['payouts:read', 'account:write'], 'allowed_ips' => null,
+        ]], 201);
+
+        $this->client()->apiKeys->create(['name' => 'Books', 'permissions' => [ApiKeyPermission::PayoutsRead, 'account:write']]);
+
+        $this->assertSame(['name' => 'Books', 'permissions' => ['payouts:read', 'account:write']], self::body($this->http->lastRequest()));
     }
 
     public function test_keys_are_listed_changed_and_revoked(): void

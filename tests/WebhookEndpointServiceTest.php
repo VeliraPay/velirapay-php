@@ -77,7 +77,10 @@ final class WebhookEndpointServiceTest extends TestCase
 
         $this->http->json(['data' => [...self::endpoint(), 'secret' => 'whsec_new'], 'meta' => ['previous_secret_expires_at' => '2026-11-07T09:00:00.000000Z']]);
 
-        $this->assertSame('whsec_new', $this->client()->webhookEndpoints->rotateSecret('12')->secret);
+        $rotated = $this->client()->webhookEndpoints->rotateSecret('12');
+
+        $this->assertSame('whsec_new', $rotated->secret);
+        $this->assertEquals(new DateTimeImmutable('2026-11-07T09:00:00Z'), $rotated->previousSecretExpiresAt);
         $this->assertSame('/v1/webhook-endpoints/12/secret', $this->http->lastRequest()->getUri()->getPath());
 
         $this->http->queue(new Response(204));

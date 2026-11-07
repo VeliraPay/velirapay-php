@@ -2,6 +2,14 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+- An `ApiKeyPermission` enum of every permission an API key can have, which `apiKeys->create()` and `update()` take as well as strings.
+- `$endpoint->previousSecretExpiresAt` on the answer to `webhookEndpoints->rotateSecret()`: until when the secret it replaced still signs deliveries.
+- `activity->list()` and `iterator()` document the `network` filter, which leaves out what belongs to no mode.
+- The README and `$account->business` say that the API only sends the account's business details to a key with the sensitive `account:write` permission. For any other key every business field is `null`, and `$account->get('business')` is `null` too; earlier versions read it the same way, so nothing breaks.
+- The README says that adding an endpoint, giving one a new `url`, `verify()`, `test()` and `retryDelivery()` share a limit of 10 a minute per key, and that `assets->list()` returns a single page rather than a plain array.
+
 ## 0.6.2 - 2026-11-06
 
 - `$account->checkout['default_coin']`: the coin the checkout starts on, or null when the merchant has not picked one (the checkout then starts on Litecoin where it is on offer).

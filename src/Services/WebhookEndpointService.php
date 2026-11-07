@@ -57,7 +57,7 @@ final class WebhookEndpointService extends Service
     }
 
     /**
-     * Add an endpoint and send it its verification challenge. The answer carries its signing secret, shown this once, and verificationError while it has not answered.
+     * Add an endpoint and send it its verification challenge, which counts against the 10 requests a minute that verifying, testing and retrying share. The answer carries its signing secret, shown this once, and verificationError while it has not answered.
      *
      * @param  array{url: string, events: list<string>, description?: string|null, active?: bool}  $params
      *
@@ -70,7 +70,7 @@ final class WebhookEndpointService extends Service
     }
 
     /**
-     * Change an endpoint's url, events, description or active, only those given. A new url is verified again, with verificationError while it has not answered.
+     * Change an endpoint's url, events, description or active, only those given. A new url is verified again, which counts against the same 10 requests a minute, with verificationError while it has not answered.
      *
      * @param  array{url?: string, events?: list<string>, description?: string|null, active?: bool}  $params
      *
@@ -116,7 +116,7 @@ final class WebhookEndpointService extends Service
     }
 
     /**
-     * Replace the endpoint's signing secret. The answer carries the new one, shown this once; the old one keeps signing for a day.
+     * Replace the endpoint's signing secret. The answer carries the new one, shown this once; the old one keeps signing for a day, until previousSecretExpiresAt.
      *
      * @throws ApiException
      * @throws ConnectionException

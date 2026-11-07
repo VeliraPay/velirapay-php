@@ -43,6 +43,8 @@ final class WebhookEndpoint extends ApiResource
         public readonly ?string $secret = null,
         /** Why the endpoint did not answer the verification challenge, in the answers that sent it one. */
         public readonly ?string $verificationError = null,
+        /** Until when the secret a rotation replaced still signs deliveries too, in the answer that rotates it. */
+        public readonly ?DateTimeImmutable $previousSecretExpiresAt = null,
     ) {
         parent::__construct($attributes);
     }
@@ -69,6 +71,7 @@ final class WebhookEndpoint extends ApiResource
             createdAt: self::date($data, 'created_at'),
             secret: self::nullableString($data, 'secret'),
             verificationError: self::nullableString($meta, 'verification_error'),
+            previousSecretExpiresAt: self::date($meta, 'previous_secret_expires_at'),
         );
     }
 

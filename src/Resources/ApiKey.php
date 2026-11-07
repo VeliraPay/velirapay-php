@@ -30,7 +30,7 @@ final class ApiKey extends ApiResource
         public readonly ?string $key,
         /** "live" or "test". */
         public readonly string $mode,
-        /** What the key may do, null for full access. */
+        /** The ApiKeyPermission values the key has, null for full access. */
         public readonly ?array $permissions,
         /** The addresses and ranges it may be used from, null for anywhere. */
         public readonly ?array $allowedIps,

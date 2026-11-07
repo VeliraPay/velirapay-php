@@ -13,7 +13,7 @@ use VeliraPay\Enums\Mode;
 final class Account extends ApiResource
 {
     /**
-     * Who runs the account and what it sells; every field is null until it is filled in.
+     * Who runs the account and what it sells; every field is null until it is filled in. The API only sends it to a key with the sensitive account:write permission: for any other key every field is null, and get('business') is null too.
      */
     public readonly AccountBusiness $business;
 

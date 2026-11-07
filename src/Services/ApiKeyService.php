@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace VeliraPay\Services;
 
 use Generator;
+use VeliraPay\Enums\ApiKeyPermission;
 use VeliraPay\Exceptions\ApiException;
 use VeliraPay\Exceptions\ConnectionException;
 use VeliraPay\Page;
@@ -46,7 +47,7 @@ final class ApiKeyService extends Service
     /**
      * Create a key in the API key's mode. Its key property holds the key itself, shown this once; leaving permissions out gives full access.
      *
-     * @param  array{name: string, permissions?: list<string>|null, allowed_ips?: list<string>|null}  $params
+     * @param  array{name: string, permissions?: list<ApiKeyPermission|string>|null, allowed_ips?: list<string>|null}  $params
      *
      * @throws ApiException
      * @throws ConnectionException
@@ -59,7 +60,7 @@ final class ApiKeyService extends Service
     /**
      * Change a key's name, permissions or allowed_ips, only those given; null permissions gives full access and null allowed_ips anywhere.
      *
-     * @param  array{name?: string, permissions?: list<string>|null, allowed_ips?: list<string>|null}  $params
+     * @param  array{name?: string, permissions?: list<ApiKeyPermission|string>|null, allowed_ips?: list<string>|null}  $params
      *
      * @throws ApiException
      * @throws ConnectionException

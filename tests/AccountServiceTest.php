@@ -105,6 +105,24 @@ final class AccountServiceTest extends TestCase
         $this->assertFalse($account->apiPayoutAddressChanges);
     }
 
+    public function test_business_details_withheld_from_a_key_without_account_write_read_as_null(): void
+    {
+        $this->http->json(['data' => ['id' => 'acme', 'display_name' => 'Acme Inc.', 'business' => null], 'meta' => ['accepted_assets' => ['BTC'], 'mode' => 'live']]);
+
+        $account = $this->client()->account->retrieve();
+
+        $this->assertNull($account->get('business'));
+        $this->assertSame([], $account->business->toArray());
+        $this->assertNull($account->business->type);
+        $this->assertNull($account->business->legalName);
+        $this->assertNull($account->business->taxId);
+        $this->assertNull($account->business->address->country);
+        $this->assertNull($account->business->industry);
+        $this->assertNull($account->business->monthlyVolume);
+        $this->assertSame('Acme Inc.', $account->displayName);
+        $this->assertSame(['BTC'], $account->acceptedAssets);
+    }
+
     public function test_business_details_that_are_unset_or_unknown_to_this_library_are_null(): void
     {
         $this->http->json(['data' => ['id' => 'acme', 'business' => ['type' => 'cooperative', 'industry' => null]], 'meta' => []]);

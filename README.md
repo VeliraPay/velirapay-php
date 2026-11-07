@@ -382,10 +382,12 @@ $endpoint->verificationError; // null once the endpoint answered the challenge
 $velirapay->webhookEndpoints->update('12', ['active' => false]);
 $velirapay->webhookEndpoints->verify('12');               // send the challenge again
 $velirapay->webhookEndpoints->test('12');                 // a sample charge.paid, marked test
-$velirapay->webhookEndpoints->rotateSecret('12')->secret; // the old one keeps signing for a day
+$velirapay->webhookEndpoints->rotateSecret('12')->secret; // the old one keeps signing for a day, until ->previousSecretExpiresAt
 $velirapay->webhookEndpoints->retryDelivery('12', $delivery->id);
 $velirapay->webhookEndpoints->delete('12');
 ```
+
+Adding an endpoint, giving one a new `url`, `verify()`, `test()` and `retryDelivery()` each send the endpoint a request, so together they are limited to 10 a minute per key. Past that the API answers 429: a short wait is [retried](#retries-and-idempotency) for you, and a longer one throws a `RateLimitException` whose `retryAfter()` says how many seconds to wait.
 
 ## Your account
 
@@ -419,6 +421,8 @@ $business->phone;               // in international format
 ```
 
 Every business field is `null` until it is filled in. `type`, `industry` and `monthlyVolume` are also `null` for a value the API adds after this version of the library; `$business->get('industry')` still returns it as sent.
+
+The business details are only sent to a key with the sensitive `account:write` permission, which full access does not include. For any other key every business field is `null`, and so is `$account->get('business')`, while details that were never filled in come as an object of `null` fields.
 
 The plan is on the account too: `$account->plan` ("free" or "pro"), `$account->feePercent` and `$account->proEndsAt`, with `$account->isPro()`.
 
@@ -470,11 +474,11 @@ $payment = $velirapay->billing->startProPayment(['asset' => 'BTC']); // with a l
 $payment->checkoutUrl; // where to pay a month of Pro
 ```
 
-`api_keys:read`, `api_keys:write`, `members:read` and `members:write` are sensitive. A key can make or change no key with a permission or an IP address it does not have itself, nor touch a key that reaches further. Only a key an owner made changes a role or removes a member, and owners are never changed this way. `billing:write` comes with full access.
+`permissions` takes `VeliraPay\Enums\ApiKeyPermission` cases, such as `ApiKeyPermission::ChargesRead`, or their values. `api_keys:read`, `api_keys:write`, `members:read` and `members:write` are sensitive. A key can make or change no key with a permission or an IP address it does not have itself, nor touch a key that reaches further. Only a key an owner made changes a role or removes a member, and owners are never changed this way. `billing:write` comes with full access.
 
 ## Lists and pagination
 
-Paged `list()` methods return one page, newest first (members are oldest first). Assets, payout addresses and payout summaries return plain arrays. Pass `page` and `per_page` (up to 100, 25 by default) to move through a paged list:
+Paged `list()` methods return one page, newest first (members are oldest first). Payout addresses and payout summaries return plain arrays, and `assets->list()` a single page holding every coin. Pass `page` and `per_page` (up to 100, 25 by default) to move through a paged list:
 
 ```php
 $page = $velirapay->charges->list(['per_page' => 100]);
