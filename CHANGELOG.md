@@ -2,7 +2,7 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.6.3 - 2026-11-07
 
 - An `ApiKeyPermission` enum of every permission an API key can have, which `apiKeys->create()` and `update()` take as well as strings.
 - `$endpoint->previousSecretExpiresAt` on the answer to `webhookEndpoints->rotateSecret()`: until when the secret it replaced still signs deliveries.
