@@ -487,7 +487,7 @@ $apiKey = $velirapay->apiKeys->create(['name' => 'Shop server', 'permissions' =>
 $apiKey->key; // "vp_live_…", shown this once
 
 $velirapay->invitations->create(['email' => 'grace@example.com', 'role' => 'admin']);
-$velirapay->members->update('3', ['role' => 'member']);
+$velirapay->members->update('3', ['role' => 'finance']); // admin, member, finance, support or viewer
 
 $payment = $velirapay->billing->startProPayment(['asset' => 'BTC']); // with a live key
 $payment->checkoutUrl; // where to pay a month of Pro

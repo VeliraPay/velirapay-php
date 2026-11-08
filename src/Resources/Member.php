@@ -24,7 +24,7 @@ final class Member extends ApiResource
         public readonly string $name,
         /** The address they sign in with. */
         public readonly string $email,
-        /** "owner", "admin" or "member". */
+        /** "owner", "admin", "member", "finance", "support" or "viewer". */
         public readonly string $role,
         /** When they joined. */
         public readonly ?DateTimeImmutable $joinedAt,
