@@ -2,7 +2,7 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.6.4 - 2026-11-08
 
 - `webhookEndpoints->retrieveDelivery()` reads one delivery with `$delivery->attemptLog`, every attempt to send it, the latest first, as `WebhookDeliveryAttempt` objects: the URL and headers sent, the endpoint's status, headers and the first 2,000 characters of its answer, how long it took and the error. `$delivery->payload` is the JSON body it carried, or null for a key without `events:read`. Listed deliveries leave both out, as before.
 - Members and invitations can have the new `finance`, `support` and `viewer` roles beside `owner`, `admin` and `member`; `role` stays a string, so nothing breaks.
