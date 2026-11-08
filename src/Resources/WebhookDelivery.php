@@ -7,7 +7,7 @@ namespace VeliraPay\Resources;
 use DateTimeImmutable;
 
 /**
- * One event sent to a webhook endpoint, and how it went. What was sent and what came back are not returned.
+ * One event sent to a webhook endpoint, and how it went. What was sent and what came back are only returned one delivery at a time, by retrieveDelivery().
  */
 final class WebhookDelivery extends ApiResource
 {
@@ -15,6 +15,8 @@ final class WebhookDelivery extends ApiResource
      * Create a new webhook delivery.
      *
      * @param  array<string, mixed>  $attributes
+     * @param  array<string, mixed>|null  $payload
+     * @param  list<WebhookDeliveryAttempt>  $attemptLog
      */
     public function __construct(
         array $attributes,
@@ -44,6 +46,10 @@ final class WebhookDelivery extends ApiResource
         public readonly ?DateTimeImmutable $lastAttemptedAt,
         /** When the endpoint accepted it. */
         public readonly ?DateTimeImmutable $deliveredAt,
+        /** The JSON body it carried, from retrieveDelivery() alone and only for a key that may also read events. */
+        public readonly ?array $payload = null,
+        /** Every attempt to send it, the latest first, from retrieveDelivery() alone. */
+        public readonly array $attemptLog = [],
     ) {
         parent::__construct($attributes);
     }
@@ -70,6 +76,8 @@ final class WebhookDelivery extends ApiResource
             createdAt: self::date($data, 'created_at'),
             lastAttemptedAt: self::date($data, 'last_attempted_at'),
             deliveredAt: self::date($data, 'delivered_at'),
+            payload: is_array($data['payload'] ?? null) ? self::map($data, 'payload') : null,
+            attemptLog: self::objects($data, 'attempt_log', WebhookDeliveryAttempt::fromArray(...)),
         );
     }
 

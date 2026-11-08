@@ -368,6 +368,25 @@ foreach ($velirapay->webhookEndpoints->deliveries('12', ['status' => 'failed']) 
 }
 ```
 
+Retrieve one delivery to see every attempt to send it, the latest first, and the JSON body it carried:
+
+```php
+$delivery = $velirapay->webhookEndpoints->retrieveDelivery('12', $delivery->id);
+
+foreach ($delivery->attemptLog as $attempt) {
+    $attempt->requestHeaders;  // the signatures cut out, the timestamp they signed kept
+    $attempt->responseStatus;  // null when nothing answered
+    $attempt->responseHeaders; // a few dozen at most, never cookies
+    $attempt->responseBody;    // the first 2,000 characters
+    $attempt->durationMs;
+    $attempt->error;           // such as a timeout
+}
+
+$delivery->payload; // the JSON body, or null for a key without events:read
+```
+
+Attempts are kept as long as their delivery, 30 days. A delivery sent before they were kept, on 8 November 2026, has an empty `attemptLog`.
+
 A key with the sensitive `webhook_endpoints:write` permission ticked can also add and change them. A new endpoint is sent its verification challenge at once, and the answer that adds it, or rotates its secret, is the only one that carries the signing secret:
 
 ```php

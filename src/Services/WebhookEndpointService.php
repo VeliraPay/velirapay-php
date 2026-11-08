@@ -141,6 +141,17 @@ final class WebhookEndpointService extends Service
     }
 
     /**
+     * Retrieve one of the endpoint's deliveries with every attempt to send it, the latest first, and the JSON body it carried when the key may also read events.
+     *
+     * @throws ApiException
+     * @throws ConnectionException
+     */
+    public function retrieveDelivery(string $id, string $deliveryId): WebhookDelivery
+    {
+        return WebhookDelivery::fromArray($this->request('GET', self::path('/v1/webhook-endpoints/%s/deliveries/%s', $id, $deliveryId)));
+    }
+
+    /**
      * Send one of the endpoint's deliveries again, once the endpoint is verified and not paused.
      *
      * @throws ApiException

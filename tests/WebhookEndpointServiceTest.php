@@ -108,6 +108,48 @@ final class WebhookEndpointServiceTest extends TestCase
 
         $this->assertSame('POST', $this->http->lastRequest()->getMethod());
         $this->assertSame("/v1/webhook-endpoints/12/deliveries/{$delivery->id}/retry", $this->http->lastRequest()->getUri()->getPath());
+        $this->assertNull($delivery->payload);
+        $this->assertSame([], $delivery->attemptLog);
+    }
+
+    public function test_a_delivery_is_retrieved_with_every_attempt_and_its_body(): void
+    {
+        $this->http->json(['data' => [
+            ...self::delivery(),
+            'attempts' => 2,
+            'payload' => ['id' => 'whd_1', 'event' => 'charge.paid', 'data' => ['charge' => ['id' => 'abc123']]],
+            'attempt_log' => [
+                [
+                    'object' => 'webhook_delivery_attempt', 'attempt' => 2, 'url' => 'https://example.com/hooks',
+                    'request_headers' => ['Content-Type' => 'application/json', 'X-VeliraPay-Signature' => 't=1762419601,v1=…'],
+                    'response_status' => 200, 'response_headers' => ['Content-Type' => 'text/plain'], 'response_body' => 'ok',
+                    'error' => null, 'duration_ms' => 84, 'created_at' => '2026-11-06T09:05:00.000000Z',
+                ],
+                [
+                    'object' => 'webhook_delivery_attempt', 'attempt' => 1, 'url' => 'https://example.com/hooks', 'request_headers' => ['Content-Type' => 'application/json'],
+                    'response_status' => null, 'response_headers' => null, 'response_body' => null,
+                    'error' => 'Timed out after 10 seconds.', 'duration_ms' => 10003, 'created_at' => '2026-11-06T09:00:00.000000Z',
+                ],
+            ],
+        ]]);
+
+        $delivery = $this->client()->webhookEndpoints->retrieveDelivery('12', '9d2e0b8a-0000-4000-8000-5f3a00000000');
+
+        $this->assertSame('GET', $this->http->lastRequest()->getMethod());
+        $this->assertSame('/v1/webhook-endpoints/12/deliveries/9d2e0b8a-0000-4000-8000-5f3a00000000', $this->http->lastRequest()->getUri()->getPath());
+        $this->assertSame(['id' => 'whd_1', 'event' => 'charge.paid', 'data' => ['charge' => ['id' => 'abc123']]], $delivery->payload);
+        $this->assertCount(2, $delivery->attemptLog);
+
+        [$latest, $first] = $delivery->attemptLog;
+
+        $this->assertTrue($latest->succeeded());
+        $this->assertSame(2, $latest->attempt);
+        $this->assertSame(['Content-Type' => 'text/plain'], $latest->responseHeaders);
+        $this->assertSame('ok', $latest->responseBody);
+        $this->assertSame(84, $latest->durationMs);
+        $this->assertFalse($first->succeeded());
+        $this->assertNull($first->responseHeaders);
+        $this->assertSame('Timed out after 10 seconds.', $first->error);
     }
 
     /**

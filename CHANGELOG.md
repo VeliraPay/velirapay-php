@@ -2,6 +2,10 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+- `webhookEndpoints->retrieveDelivery()` reads one delivery with `$delivery->attemptLog`, every attempt to send it, the latest first, as `WebhookDeliveryAttempt` objects: the URL and headers sent, the endpoint's status, headers and the first 2,000 characters of its answer, how long it took and the error. `$delivery->payload` is the JSON body it carried, or null for a key without `events:read`. Listed deliveries leave both out, as before.
+
 ## 0.6.3 - 2026-11-07
 
 - An `ApiKeyPermission` enum of every permission an API key can have, which `apiKeys->create()` and `update()` take as well as strings.
