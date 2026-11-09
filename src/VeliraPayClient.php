@@ -44,7 +44,7 @@ final class VeliraPayClient
     /**
      * The version of this library.
      */
-    public const VERSION = '0.6.4';
+    public const VERSION = '0.6.5';
 
     /**
      * The address of the VeliraPay API.
