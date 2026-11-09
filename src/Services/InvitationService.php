@@ -44,7 +44,7 @@ final class InvitationService extends Service
     }
 
     /**
-     * Email someone an invitation to join as an "admin" or a "member", in the name of whoever made the API key.
+     * Email someone an invitation to join as an "admin", "finance", "support" or "viewer", in the name of whoever made the API key.
      *
      * @param  array{email: string, role: string}  $params
      *
