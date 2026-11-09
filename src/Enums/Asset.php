@@ -27,4 +27,7 @@ enum Asset: string
     case USDC_POLYGON = 'USDC_POLYGON';
     case USDT_BSC = 'USDT_BSC';
     case USDC_BSC = 'USDC_BSC';
+    case USDT_POLYGON = 'USDT_POLYGON';
+    case USDT_ARBITRUM = 'USDT_ARBITRUM';
+    case USDC_ARBITRUM = 'USDC_ARBITRUM';
 }
