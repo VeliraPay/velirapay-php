@@ -5,7 +5,7 @@ All notable changes to this library are documented here. It follows [Semantic Ve
 ## 0.6.5 - 2026-11-09
 
 - The `member` role is gone: the API refuses it with a 422, and the people who had it are `finance` now, which may do everything it could. `role` stays a string, so nothing breaks.
-- `Asset::USDT_POLYGON`, `Asset::USDT_ARBITRUM` and `Asset::USDC_ARBITRUM`, for the stablecoins on Polygon and Arbitrum One, for the stablecoins VeliraPay switches on chain by chain: `USDC_BASE`, `USDT_POLYGON` and `USDC_POLYGON` are on offer since 2026-11-09, and Arbitrum One's coins follow when it is switched on. `$supportedAsset->asset()` stays null for a coin a version does not know, so older versions keep working.
+- `Asset::USDT_POLYGON`, `Asset::USDT_ARBITRUM` and `Asset::USDC_ARBITRUM`, for the stablecoins VeliraPay switches on chain by chain: `USDC_BASE`, `USDT_POLYGON` and `USDC_POLYGON` are on offer since 2026-11-09, and Arbitrum One's coins follow when it is switched on. `$supportedAsset->asset()` stays null for a coin a version does not know, so older versions keep working.
 
 ## 0.6.4 - 2026-11-08
 
