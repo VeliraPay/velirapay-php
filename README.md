@@ -155,10 +155,12 @@ $velirapay->charges->send('k3v9x2m7q8wz');
 // Only while the charge is pending and no transfer to it has been seen.
 $velirapay->charges->cancel('k3v9x2m7q8wz');
 
-// Settle an underpaid charge, or a late payment on an expired or canceled one, for what arrived.
+// Settle an underpaid charge, or a late payment on an expired or canceled one, for what arrived;
+// a 409 while a payment to an underpaid charge is still confirming.
 $velirapay->charges->accept('k3v9x2m7q8wz');
 
-// Record a refund you sent from your own wallet.
+// Record a refund you sent from your own wallet. An underpaid charge or a late payment is accepted
+// first, and the network surcharge is never refundable.
 $velirapay->charges->recordRefund('k3v9x2m7q8wz', [
     'amount' => '0.0005',
     'txid' => '7d1c5e9a…',
@@ -628,7 +630,7 @@ Some things to know:
 - **Test deliveries.** The dashboard's "Send test event" button sends a sample `charge.paid` with `$event->test` set to `true` and no `eventId`. Its charge is a made-up sample without many of a real one's fields, such as `transactions` and `customer`.
 - **Signatures expire.** A signature more than 5 minutes from the current time is rejected, which stops an intercepted delivery from being replayed. Change the limit with the non-negative `tolerance` argument; `0` explicitly disables the age check.
 
-`charge.payment_detected` arrives as soon as a transfer to a charge is seen on-chain, before it is confirmed; `charge.late_payment` when one reaches a charge that already expired, was canceled or was paid. Both carry that transfer as `$event->transaction` (`txid`, `amount`, `confirmations`, `requiredConfirmations`, `credited`, `explorerUrl`, `seenAt`); for every other event it is `null`.
+`charge.payment_detected` arrives as soon as a transfer to a charge is seen on-chain, before it is confirmed; `charge.late_payment` when one reaches a charge that already expired, was canceled or was paid, or tops up an underpaid charge after its rate lock ended, which is announced once it has confirmed. A late payment to an expired, canceled or underpaid charge waits for you to accept it; one on top of a paid charge is counted automatically. Both carry that transfer as `$event->transaction` (`txid`, `amount`, `confirmations`, `requiredConfirmations`, `credited`, `explorerUrl`, `seenAt`); for every other event it is `null`.
 
 `payout.sent` arrives when your share of a paid charge has been broadcast, and `payout.confirmed` when the chain has confirmed it. Both carry the charge as `$event->charge` and the payout as `$event->payout`, the same object `$velirapay->payouts->retrieve()` returns; for every other event it is `null`. Book the money on `payout.confirmed`: a broadcast payout can still be dropped or fail and go out again, so `payout.sent` can arrive more than once for a charge. `networkFee` on `payout.sent` can be the most the chain may charge, where `payout.confirmed` has what it took, and a USDT or USDC payout left unmined bids again under a new `payoutTxid`, so the one that counts is the one in `payout.confirmed`.
 

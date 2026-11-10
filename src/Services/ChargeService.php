@@ -82,7 +82,8 @@ final class ChargeService extends Service
     }
 
     /**
-     * Record a refund you sent the customer from your own wallet.
+     * Record a refund you sent the customer from your own wallet. An underpaid charge or a late payment is accepted first,
+     * and the network surcharge is never refundable; the API answers 422 otherwise.
      *
      * @param  array{amount: numeric-string|int|float, txid?: string|null, reason?: string|null}  $params
      *
@@ -106,7 +107,8 @@ final class ChargeService extends Service
     }
 
     /**
-     * Accept an underpaid charge, or a late payment on an expired or canceled one, as paid for what arrived.
+     * Accept an underpaid charge, or a late payment on an expired or canceled one, as paid for what arrived and confirmed.
+     * The API answers 409 for any other charge, and for an underpaid one while a payment to it is still confirming.
      *
      * @throws ApiException
      * @throws ConnectionException
