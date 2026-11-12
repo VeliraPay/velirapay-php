@@ -583,25 +583,27 @@ $payment->checkoutUrl; // where to pay a month of Pro
 
 `permissions` takes `VeliraPay\Enums\ApiKeyPermission` cases, such as `ApiKeyPermission::ChargesRead`, or their values. `api_keys:read`, `api_keys:write`, `members:read` and `members:write` are sensitive. A key can make or change no key with a permission or an IP address it does not have itself, nor touch a key that reaches further. Only a key an owner made changes a role or removes a member, and owners are never changed this way. `billing:write` comes with full access.
 
-A new key is shown once and never kept for a retry. When the answer to `apiKeys->create()` is lost, the library sends the request again under the same idempotency key, and the API answers it with a `ConflictException` whose `wasReplayed()` is `true`: the key was made, but nobody can read it. Find it with `apiKeys->list()`, revoke it, and create another:
+A new key is shown once and never kept for a retry. When the answer to `apiKeys->create()` is lost, the library sends the request again under the same idempotency key, and the API answers it with a `ConflictException` whose `wasReplayed()` is `true`: the key was made, but nobody can read it. Find it with `apiKeys->list()`, revoke it, and create another. Two keys may share a name, so give the key one that no other key has, or the search may revoke a key you still use:
 
 ```php
 use VeliraPay\Exceptions\ConflictException;
 
+$name = 'Shop server '.bin2hex(random_bytes(3)); // the name alone is not unique, so this one tells the key apart
+
 try {
-    $apiKey = $velirapay->apiKeys->create(['name' => 'Shop server']);
+    $apiKey = $velirapay->apiKeys->create(['name' => $name]);
 } catch (ConflictException $exception) {
     if (! $exception->wasReplayed()) {
         throw $exception;
     }
 
     foreach ($velirapay->apiKeys->list() as $key) {
-        if ($key->name === 'Shop server' && $key->lastUsedAt === null) {
+        if ($key->name === $name) {
             $velirapay->apiKeys->revoke($key->id);
         }
     }
 
-    $apiKey = $velirapay->apiKeys->create(['name' => 'Shop server']);
+    $apiKey = $velirapay->apiKeys->create(['name' => $name]);
 }
 ```
 
