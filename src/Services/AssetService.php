@@ -16,7 +16,7 @@ use VeliraPay\Resources\SupportedAsset;
 final class AssetService extends Service
 {
     /**
-     * List the coins that can be paid in the API key's mode, with the lowest price each can be charged at.
+     * List the coins that can be paid in the API key's mode, with the lowest price each can be charged at. The page's mode and currencies say the mode and every currency prices can be asked in.
      *
      * @param  array{currency?: Currency|string}  $params  The currency of the prices; the account's default when left out.
      * @return Page<SupportedAsset>

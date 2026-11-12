@@ -109,7 +109,7 @@ USDT and USDC on Ethereum start at 10 of the token, because paying one out costs
 
 A coin with a `networkSurcharge`, such as USDT on Tron, asks the customer for that much more than the price, to pay for passing the payment on, so tell them before they choose it. VeliraPay keeps it: it is not part of your payout, and a refund cannot include it. A charge in such a coin counts it in `assetAmount` and gives it again as `$charge->networkSurcharge`.
 
-Without `currency`, prices are in your account's default currency. The list is not paged.
+Without `currency`, prices are in your account's default currency. The list is not paged: it is one page, whose `mode` is the key's mode and whose `currencies` are every currency prices can be asked in.
 
 ## Charges
 
@@ -527,7 +527,11 @@ foreach ($page as $charge) {
 $page->total;
 $page->hasMore();
 $next = $page->nextPage(); // null on the last page
+$page->meta;               // the answer's meta as the API sent it
+$page->mode;               // "live" or "test" for the lists that say, the coins on offer and the activity log; otherwise null
 ```
+
+The two lists that are plain arrays carry meta too, which the last response holds: `$velirapay->lastResponse()?->meta()['mode']` after `payouts->summary()`, and `['api_payout_address_changes']` after `payoutAddresses->list()`, whether an owner lets API keys change payout addresses.
 
 `iterator()` walks every page for you, fetching each one as it is reached:
 

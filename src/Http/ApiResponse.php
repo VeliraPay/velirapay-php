@@ -104,6 +104,19 @@ final class ApiResponse
     }
 
     /**
+     * Get what the body carries under "meta", such as the mode of a list, or an empty array when it carries none.
+     *
+     * @return array<string, mixed>
+     */
+    public function meta(): array
+    {
+        $meta = $this->decode()['meta'] ?? null;
+
+        /** @var array<string, mixed> */
+        return is_array($meta) ? $meta : [];
+    }
+
+    /**
      * Get the body as decoded JSON, or null when it is not a JSON object.
      *
      * @return array<string, mixed>|null

@@ -61,10 +61,7 @@ abstract class Service
      */
     protected static function meta(ApiResponse $response): array
     {
-        $meta = $response->json()['meta'] ?? null;
-
-        /** @var array<string, mixed> */
-        return is_array($meta) ? $meta : [];
+        return $response->meta();
     }
 
     /**
@@ -146,7 +143,7 @@ abstract class Service
             }
         }
 
-        $meta = is_array($json['meta'] ?? null) ? $json['meta'] : [];
+        $meta = self::meta($response);
         $currentPage = self::integer($meta['current_page'] ?? null, 1);
 
         return new Page(
@@ -156,6 +153,7 @@ abstract class Service
             perPage: self::integer($meta['per_page'] ?? null, count($data)),
             total: self::integer($meta['total'] ?? null, count($data)),
             fetch: fn (int $page): Page => $this->page($path, [...$params, 'page' => $page], $hydrate),
+            meta: $meta,
         );
     }
 

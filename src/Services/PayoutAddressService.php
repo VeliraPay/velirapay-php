@@ -16,6 +16,7 @@ final class PayoutAddressService extends Service
 {
     /**
      * List where payouts go in the API key's mode: one entry per network with coins on offer, its address null while there is none.
+     * Whether an owner lets API keys change them is in the answer's meta, read as lastResponse()?->meta()['api_payout_address_changes'].
      *
      * @return list<PayoutAddress>
      *

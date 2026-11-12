@@ -58,7 +58,7 @@ final class PayoutService extends Service
     }
 
     /**
-     * Add up, per coin, what has been paid out, what is on its way and what is still owed.
+     * Add up, per coin, what has been paid out, what is on its way and what is still owed. The mode is in the answer's meta, read as lastResponse()?->meta()['mode'].
      *
      * @return list<PayoutSummary>
      *

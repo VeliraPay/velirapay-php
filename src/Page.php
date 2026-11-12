@@ -21,10 +21,23 @@ use VeliraPay\Resources\ApiResource;
 final class Page implements Countable, IteratorAggregate
 {
     /**
+     * The mode the list was read in, "live" or "test", for the lists whose answer says: the coins on offer and the activity log.
+     */
+    public readonly ?string $mode;
+
+    /**
+     * The Currency values prices can be asked in, for the coins on offer; empty for every other list.
+     *
+     * @var list<string>
+     */
+    public readonly array $currencies;
+
+    /**
      * Create a new page.
      *
      * @param  list<TResource>  $data
      * @param  Closure(int): Page<TResource>  $fetch  Fetches another page of the same list by number.
+     * @param  array<string, mixed>  $meta
      */
     public function __construct(
         /** The objects on this page. */
@@ -38,8 +51,11 @@ final class Page implements Countable, IteratorAggregate
         /** How many objects the whole list holds. */
         public readonly int $total,
         private readonly Closure $fetch,
+        /** The answer's meta as the API sent it, the pagination included. */
+        public readonly array $meta = [],
     ) {
-        //
+        $this->mode = is_string($meta['mode'] ?? null) ? $meta['mode'] : null;
+        $this->currencies = array_values(array_filter(is_array($meta['currencies'] ?? null) ? $meta['currencies'] : [], is_string(...)));
     }
 
     /**
