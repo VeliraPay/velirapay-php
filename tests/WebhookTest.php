@@ -132,6 +132,7 @@ final class WebhookTest extends TestCase
         $this->assertTrue($invoice->isPaid());
         $this->assertNull($invoice->overdue);
         $this->assertNull($invoice->documentUrl);
+        $this->assertNull($invoice->successUrl);
         $this->assertSame(['m2q7w4e9r1ty', 'z8x6c4v2b0nm'], array_column($invoice->charges, 'id'));
         $this->assertEquals(new DateTimeImmutable('2026-10-15T00:00:00Z'), $invoice->dueAt);
     }

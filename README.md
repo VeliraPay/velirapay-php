@@ -272,6 +272,7 @@ $invoice = $velirapay->invoices->create([
         ['description' => 'Hosting', 'quantity' => '1', 'unit_amount' => '250.00'],
     ],
     'due_at' => new DateTimeImmutable('+14 days'),
+    'success_url' => 'https://example.com/orders/1042',
     'send_email' => true,
 ]);
 
@@ -804,7 +805,7 @@ The charge and invoice in a delivery are not quite the ones the API returns:
 
 - A charge's coin amounts and exchange rate carry all 18 decimal places (`"0.002500000000000000"` rather than `"0.0025"`). Compare amounts as numbers, not as strings.
 - A charge has no `timeline`, `refunds`, `checkoutUrl`, `receiptUrl`, `successUrl`, `cancelUrl` or `successMessage`. Its `payment_link` is `{code, title}` and its `invoice` is `{code, number}`: `$charge->paymentLink` and `$charge->invoice` hold the code, and `$charge->paymentLinkTitle` and `$charge->invoiceNumber` the rest, which are `null` on the charges the API returns.
-- An invoice has no `overdue` or `documentUrl`; both are `null`.
+- An invoice has no `overdue`, `documentUrl`, `successUrl` or `cancelUrl`; all four are `null`.
 - `charge.refunded` carries no refund. Read its amount, txid and reason from the event, with `$velirapay->events->retrieve($event->eventId)->details`, which holds `amount`, and `txid` and `reason` when you gave them.
 
 Fetch the object when you need what a delivery leaves out. The charges that events carry, from `GET /v1/events`, have no `timeline` either.

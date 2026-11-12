@@ -2,6 +2,10 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+- `invoices->create()` takes `success_url` and `cancel_url`, public https:// addresses the invoice's page and its charges' checkout offer the customer a way back to: a button once they have paid, and a link while it is open. `$invoice->successUrl` and `$invoice->cancelUrl` read them back, and are `null` in webhooks, which leave them out.
+
 ## 0.6.7 - 2026-11-12
 
 - An answer cut off or timed out after its headers arrived, which Guzzle 8 throws as a `ResponseTransferException` or `ResponseTimeoutException`, is retried like a network error, for reads and for writes carrying an idempotency key, which every write does while retries are on. Before, it was thrown as a `ConnectionException` at once.

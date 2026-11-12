@@ -59,6 +59,10 @@ final class Invoice extends ApiResource
         public readonly ?DateTimeImmutable $voidedAt,
         /** When it was created. */
         public readonly ?DateTimeImmutable $createdAt,
+        /** The page the customer is offered a button back to once they have paid; absent from webhooks. */
+        public readonly ?string $successUrl = null,
+        /** The page the customer can go back to from the invoice without paying; absent from webhooks. */
+        public readonly ?string $cancelUrl = null,
     ) {
         parent::__construct($attributes);
     }
@@ -95,6 +99,8 @@ final class Invoice extends ApiResource
             paidAt: self::date($data, 'paid_at'),
             voidedAt: self::date($data, 'voided_at'),
             createdAt: self::date($data, 'created_at'),
+            successUrl: self::nullableString($data, 'success_url'),
+            cancelUrl: self::nullableString($data, 'cancel_url'),
         );
     }
 

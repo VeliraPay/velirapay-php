@@ -21,7 +21,7 @@ final class InvoiceService extends Service
     /**
      * Create an invoice, for a total or a list of items, and optionally email it to the customer. A DateTimeInterface given as due_at is sent as the day it falls on where it is.
      *
-     * @param  array{customer_name: string, customer_email: string, currency: Currency|string, amount?: numeric-string|int|float, items?: list<array{description: string, quantity: numeric-string|int|float, unit_amount: numeric-string|int|float}>, memo?: string|null, due_at?: DateTimeInterface|string|null, send_email?: bool}  $params
+     * @param  array{customer_name: string, customer_email: string, currency: Currency|string, amount?: numeric-string|int|float, items?: list<array{description: string, quantity: numeric-string|int|float, unit_amount: numeric-string|int|float}>, memo?: string|null, due_at?: DateTimeInterface|string|null, success_url?: string|null, cancel_url?: string|null, send_email?: bool}  $params
      *
      * @throws ApiException
      * @throws ConnectionException

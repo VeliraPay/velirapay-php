@@ -24,6 +24,8 @@ final class InvoiceServiceTest extends TestCase
                 ['description' => 'Hosting', 'quantity' => '2.5', 'unit_amount' => '100.00'],
             ],
             'due_at' => new DateTimeImmutable('2026-10-15 22:30:00', new DateTimeZone('America/New_York')),
+            'success_url' => 'https://example.com/orders/1042',
+            'cancel_url' => 'https://example.com/checkout',
             'send_email' => true,
         ]);
 
@@ -32,6 +34,8 @@ final class InvoiceServiceTest extends TestCase
         $this->assertSame('/v1/invoices', $request->getUri()->getPath());
         $this->assertSame('2026-10-15', self::body($request)['due_at']);
         $this->assertTrue(self::body($request)['send_email']);
+        $this->assertSame('https://example.com/orders/1042', self::body($request)['success_url']);
+        $this->assertSame('https://example.com/checkout', self::body($request)['cancel_url']);
         $this->assertSame('w7c2h5j9d3kx', $invoice->id);
     }
 
@@ -72,6 +76,8 @@ final class InvoiceServiceTest extends TestCase
         $this->assertEquals(new DateTimeImmutable('2026-10-15T00:00:00Z'), $invoice->dueAt);
         $this->assertSame('https://velirapay.com/i/w7c2h5j9d3kx', $invoice->hostedUrl);
         $this->assertSame('https://velirapay.com/i/w7c2h5j9d3kx/document', $invoice->documentUrl);
+        $this->assertSame('https://example.com/orders/1042', $invoice->successUrl);
+        $this->assertNull($invoice->cancelUrl);
         $this->assertSame([['id' => 'm2q7w4e9r1ty', 'status' => 'expired', 'asset' => 'ETH']], $invoice->charges);
         $this->assertEquals(new DateTimeImmutable('2026-09-21T08:00:00Z'), $invoice->sentAt);
         $this->assertNull($invoice->paidAt);
