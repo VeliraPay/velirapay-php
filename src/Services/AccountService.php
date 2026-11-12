@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 namespace VeliraPay\Services;
 
+use VeliraPay\Enums\Asset;
+use VeliraPay\Enums\BusinessType;
+use VeliraPay\Enums\CheckoutAppearance;
 use VeliraPay\Enums\CheckoutLocale;
 use VeliraPay\Enums\Currency;
+use VeliraPay\Enums\Industry;
+use VeliraPay\Enums\MonthlyVolume;
 use VeliraPay\Exceptions\ApiException;
 use VeliraPay\Exceptions\ConnectionException;
 use VeliraPay\Http\ApiResponse;
@@ -30,7 +35,7 @@ final class AccountService extends Service
     /**
      * Change the account's name, public profile, checkout and invoice settings or business details, in the shape retrieve() answers with; null clears a field. Needs account:write.
      *
-     * @param  array<string, mixed>  $params
+     * @param  array{name?: string, display_name?: string|null, website_url?: string|null, support_email?: string|null, support_phone?: string|null, terms_url?: string|null, refund_policy_url?: string|null, brand_color?: string|null, checkout?: array{appearance?: CheckoutAppearance|string, coin_order?: list<Asset|string>, default_coin?: Asset|string|null, success_url?: string|null, cancel_url?: string|null, success_message?: string|null, hide_powered_by?: bool}, invoices?: array{number_prefix?: string|null, footer?: string|null, show_business_details?: bool}, business?: array{type?: BusinessType|string|null, legal_name?: string|null, registration_number?: string|null, tax_id?: string|null, address?: array{line1?: string|null, line2?: string|null, city?: string|null, postal_code?: string|null, state?: string|null, country?: string|null}, industry?: Industry|string|null, product_description?: string|null, monthly_volume?: MonthlyVolume|string|null, phone?: string|null}}  $params
      *
      * @throws ApiException
      * @throws ConnectionException

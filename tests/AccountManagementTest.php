@@ -6,6 +6,11 @@ namespace VeliraPay\Tests;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use VeliraPay\Enums\Asset;
+use VeliraPay\Enums\BusinessType;
+use VeliraPay\Enums\CheckoutAppearance;
+use VeliraPay\Enums\Industry;
+use VeliraPay\Enums\MonthlyVolume;
 
 /**
  * The overview, settings, payout addresses, activity log and Pro billing.
@@ -37,6 +42,55 @@ final class AccountManagementTest extends TestCase
         $this->assertSame('/v1/payment-settings', $this->http->lastRequest()->getUri()->getPath());
         $this->assertSame(['underpayment_tolerance' => '2'], self::body($this->http->lastRequest()));
         $this->assertSame('live', $settings->mode);
+    }
+
+    public function test_every_account_setting_is_sent_in_the_shape_it_is_read_in(): void
+    {
+        $account = self::fixture('account')['data'];
+        $this->assertIsArray($account);
+        $this->http->json(['data' => $account, 'meta' => ['mode' => 'live', 'accepted_assets' => []]]);
+
+        $this->client()->account->update([
+            'name' => 'Acme Studio',
+            'display_name' => 'Acme',
+            'website_url' => 'https://acme.example',
+            'support_email' => 'help@acme.example',
+            'support_phone' => '+442071234567',
+            'terms_url' => 'https://acme.example/terms',
+            'refund_policy_url' => null,
+            'brand_color' => '#0f766e',
+            'checkout' => [
+                'appearance' => CheckoutAppearance::Dark,
+                'coin_order' => [Asset::LTC, 'BTC'],
+                'default_coin' => Asset::LTC,
+                'success_url' => 'https://acme.example/thanks',
+                'cancel_url' => null,
+                'success_message' => 'Thank you.',
+                'hide_powered_by' => false,
+            ],
+            'invoices' => ['number_prefix' => 'ACME', 'footer' => null, 'show_business_details' => true],
+            'business' => [
+                'type' => BusinessType::Company,
+                'legal_name' => 'Acme Studio Ltd',
+                'registration_number' => '12345678',
+                'tax_id' => 'GB123456789',
+                'address' => ['line1' => '1 High Street', 'line2' => null, 'city' => 'London', 'postal_code' => 'EC1A 1BB', 'state' => null, 'country' => 'GB'],
+                'industry' => Industry::Software,
+                'product_description' => 'Design tools.',
+                'monthly_volume' => MonthlyVolume::Under10k,
+                'phone' => '+442071234567',
+            ],
+        ]);
+
+        $body = self::body($this->http->lastRequest());
+        $this->assertSame(['appearance' => 'dark', 'coin_order' => ['LTC', 'BTC'], 'default_coin' => 'LTC', 'success_url' => 'https://acme.example/thanks', 'cancel_url' => null, 'success_message' => 'Thank you.', 'hide_powered_by' => false], $body['checkout']);
+        $this->assertSame(['number_prefix' => 'ACME', 'footer' => null, 'show_business_details' => true], $body['invoices']);
+        $this->assertIsArray($body['business']);
+        $this->assertSame('company', $body['business']['type']);
+        $this->assertSame('software', $body['business']['industry']);
+        $this->assertSame('1k_10k', $body['business']['monthly_volume']);
+        $this->assertSame(['line1' => '1 High Street', 'line2' => null, 'city' => 'London', 'postal_code' => 'EC1A 1BB', 'state' => null, 'country' => 'GB'], $body['business']['address']);
+        $this->assertNull($body['refund_policy_url']);
     }
 
     public function test_float_tolerances_are_sent_as_plain_decimal_strings(): void
