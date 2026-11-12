@@ -11,6 +11,7 @@ use VeliraPay\Enums\BusinessType;
 use VeliraPay\Enums\CheckoutAppearance;
 use VeliraPay\Enums\Industry;
 use VeliraPay\Enums\MonthlyVolume;
+use VeliraPay\Resources\Overview;
 
 /**
  * The overview, settings, payout addresses, activity log and Pro billing.
@@ -119,6 +120,80 @@ final class AccountManagementTest extends TestCase
         $this->assertSame(['started' => 20], $overview->get('funnel'));
     }
 
+    public function test_the_overview_reads_its_period_funnel_attention_coins_links_setup_and_days(): void
+    {
+        $this->http->json(self::fixture('overview'));
+
+        $overview = $this->client()->overview->retrieve();
+
+        $this->assertSame('live', $overview->mode);
+        $this->assertEquals(new DateTimeImmutable('2026-10-14T00:00:00Z'), $overview->period->from);
+        $this->assertEquals(new DateTimeImmutable('2026-11-12T00:00:00Z'), $overview->period->to);
+
+        $this->assertSame(20, $overview->funnel->started);
+        $this->assertSame(12, $overview->funnel->paid);
+        $this->assertSame(2, $overview->funnel->waiting);
+        $this->assertSame(5, $overview->funnel->abandoned);
+        $this->assertSame(1, $overview->funnel->incomplete);
+        $this->assertCount(2, $overview->funnel->assets);
+        $this->assertSame('LTC', $overview->funnel->assets[0]->asset);
+        $this->assertSame(11, $overview->funnel->assets[0]->started);
+        $this->assertSame(8, $overview->funnel->assets[0]->paid);
+        $this->assertSame(2, $overview->funnel->assets[0]->abandoned);
+
+        $underpaid = $overview->attention->underpaidCharges[0];
+        $this->assertSame('k3v9x2m7q8wz', $underpaid->id);
+        $this->assertSame('BTC', $underpaid->asset);
+        $this->assertSame('0.0025', $underpaid->amount);
+        $this->assertSame('0.002', $underpaid->receivedAmount);
+        $this->assertSame('m2q7w4e9r1ty', $overview->attention->latePayments[0]->id);
+        $this->assertSame('1.5', $overview->attention->latePayments[0]->receivedAmount);
+        $this->assertSame('SOL', $overview->attention->payoutsWaitingForAddress[0]->asset);
+        $this->assertSame(2, $overview->attention->payoutsWaitingForAddress[0]->count);
+        $this->assertSame(1, $overview->attention->failingWebhookEndpoints);
+
+        $this->assertSame(['LTC', 'BTC'], array_map(static fn ($asset): string => $asset->asset, $overview->assets));
+        $this->assertSame(8, $overview->assets[0]->paidCharges);
+        $this->assertSame(66.67, $overview->assets[0]->sharePercent);
+
+        [$link, $deleted] = $overview->topPaymentLinks;
+        $this->assertSame('p4n8r2t6y1ua', $link->id);
+        $this->assertSame('Pro plan', $link->title);
+        $this->assertSame(7, $link->paidCharges);
+        $this->assertNull($deleted->id);
+        $this->assertNull($deleted->title);
+
+        $this->assertTrue($overview->setup->payoutAddress);
+        $this->assertTrue($overview->setup->paymentLink);
+        $this->assertTrue($overview->setup->paidCharge);
+        $this->assertFalse($overview->setup->webhookEndpoint);
+        $this->assertFalse($overview->setup->publicProfile);
+
+        $this->assertCount(2, $overview->daily);
+        $this->assertEquals(new DateTimeImmutable('2026-11-12T00:00:00Z'), $overview->daily[1]->date);
+        $this->assertSame('150.00', $overview->daily[1]->volume);
+        $this->assertSame('145.50', $overview->daily[1]->sentVolume);
+        $this->assertSame(1, $overview->daily[1]->paidCharges);
+
+        $this->assertSame(['started' => 20, 'paid' => 12, 'waiting' => 2, 'abandoned' => 5, 'incomplete' => 1, 'assets' => $overview->funnel->toArray()['assets']], $overview->get('funnel'));
+    }
+
+    public function test_an_overview_built_without_its_figures_has_empty_ones(): void
+    {
+        $overview = new Overview([], 'USD', '0', 0, 0, 0, 0, 0);
+
+        $this->assertNull($overview->period->from);
+        $this->assertSame(0, $overview->funnel->started);
+        $this->assertSame([], $overview->funnel->assets);
+        $this->assertSame([], $overview->attention->underpaidCharges);
+        $this->assertSame(0, $overview->attention->failingWebhookEndpoints);
+        $this->assertSame([], $overview->assets);
+        $this->assertSame([], $overview->topPaymentLinks);
+        $this->assertFalse($overview->setup->payoutAddress);
+        $this->assertSame([], $overview->daily);
+        $this->assertNull($overview->mode);
+    }
+
     public function test_the_overview_tells_a_zero_percentage_from_one_with_nothing_to_compare(): void
     {
         $this->http->json(['data' => ['object' => 'overview', 'currency' => 'USD', 'volume' => '0', 'volume_change_percent' => null, 'sent_volume' => '0', 'paid_charges' => 0, 'conversion_rate_percent' => 0]]);
@@ -138,6 +213,12 @@ final class AccountManagementTest extends TestCase
         $this->assertNull($overview->volumeChangePercent);
         $this->assertSame('0', $overview->sentVolume);
         $this->assertNull($overview->conversionRatePercent);
+        $this->assertNull($overview->period->to);
+        $this->assertSame(0, $overview->funnel->paid);
+        $this->assertSame([], $overview->attention->latePayments);
+        $this->assertFalse($overview->setup->publicProfile);
+        $this->assertSame([], $overview->daily);
+        $this->assertNull($overview->mode);
     }
 
     public function test_payout_addresses_are_listed_set_and_removed(): void

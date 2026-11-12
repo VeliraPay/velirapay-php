@@ -21,6 +21,8 @@ final class OverviewService extends Service
      */
     public function retrieve(): Overview
     {
-        return Overview::fromArray($this->request('GET', '/v1/overview'));
+        $response = $this->respond('GET', '/v1/overview');
+
+        return Overview::fromArray(self::data($response), self::meta($response));
     }
 }

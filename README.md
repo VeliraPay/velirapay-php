@@ -469,7 +469,14 @@ $overview->volumeChangePercent;                // against the 30 days before; nu
 $overview->sentVolume;                         // what the payouts confirmed in the period came to
 $overview->paidCharges;
 $overview->conversionRatePercent;              // the share of paid, expired and canceled charges paid; null when none
-$overview->get('attention');                   // what needs a person now
+$overview->period->from;                       // the first day the figures cover, and ->to the last
+$overview->funnel->abandoned;                  // attempts to pay that ended before anything arrived, beside started, paid, waiting, incomplete and ->assets per coin
+$overview->attention->underpaidCharges;        // what needs a person now, beside latePayments, payoutsWaitingForAddress and failingWebhookEndpoints
+$overview->assets[0]->sharePercent;            // each coin's share of the paid charges
+$overview->topPaymentLinks[0]->title;          // the links paid most, at most four
+$overview->setup->webhookEndpoint;             // which steps of setting up the account are done
+$overview->daily[0]->volume;                   // every day of the period, oldest first, with sentVolume and paidCharges
+$overview->mode;                               // "live" or "test", the key's mode
 
 foreach ($velirapay->activity->list(['action' => 'sensitive']) as $entry) { // needs activity:read
     $entry->action;    // "api_key.created"
