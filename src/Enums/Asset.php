@@ -7,7 +7,7 @@ namespace VeliraPay\Enums;
 /**
  * A coin on one particular network, such as USDT on Ethereum or USDT_TRON on Tron.
  *
- * Not every coin can be paid in at any time: the account lists the ones it accepts right now.
+ * Not every coin can be paid in at any time: the account lists the ones it accepts right now. BNB Chain, Base, Arbitrum One and Polygon have no test mode, so their coins can only be used with a live key.
  */
 enum Asset: string
 {

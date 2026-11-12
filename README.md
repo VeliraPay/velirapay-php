@@ -4,7 +4,7 @@
 [![Latest version](https://img.shields.io/packagist/v/velirapay/velirapay-php)](https://packagist.org/packages/velirapay/velirapay-php)
 [![License](https://img.shields.io/packagist/l/velirapay/velirapay-php)](LICENSE)
 
-The official PHP library for [VeliraPay](https://velirapay.com), the crypto payment processor. It covers the v1 API (the coins on offer, charges, invoices, payment links, coupons, payouts, events, webhook endpoints and your account) and verifies the webhooks VeliraPay sends you.
+The official PHP library for [VeliraPay](https://velirapay.com), the crypto payment processor. It covers the whole v1 API, in 16 groups of endpoints: your account and its payment settings, the coins on offer, charges, payment links, invoices, coupons, payouts, payout addresses, events, webhook endpoints, the overview, the activity log, API keys, members, invitations and Pro billing. It also verifies the webhooks VeliraPay sends you.
 
 - [Requirements](#requirements)
 - [Installation](#installation)
@@ -12,8 +12,8 @@ The official PHP library for [VeliraPay](https://velirapay.com), the crypto paym
 - [Which one to use](#which-one-to-use)
 - [Supported coins](#supported-coins)
 - [Charges](#charges)
-- [Invoices](#invoices)
 - [Payment links](#payment-links)
+- [Invoices](#invoices)
 - [Coupons](#coupons)
 - [Payouts](#payouts)
 - [Events](#events)
@@ -28,6 +28,7 @@ The official PHP library for [VeliraPay](https://velirapay.com), the crypto paym
 - [Configuration](#configuration)
 - [Testing your integration](#testing-your-integration)
 - [Laravel](#laravel)
+- [Development](#development)
 
 ## Requirements
 
@@ -178,6 +179,10 @@ $velirapay->charges->recordRefund('k3v9x2m7q8wz', [
 
 `asset` takes a `VeliraPay\Enums\Asset` case or its value, such as `'BTC'`. The enum lists every coin the API knows, but not all of them can be paid in at any given time: a coin is only offered while VeliraPay can also pay it out, and a network can be switched off. `$account->acceptedAssets` lists the coins your account takes right now ([Your account](#your-account)); a charge in any other coin throws a `ValidationException`.
 
+A charge in `Asset::BTC_LIGHTNING` is paid with a Lightning invoice rather than to an address: show the customer `$charge->paymentRequest`, the BOLT11 invoice, as a `lightning:` link or a QR code. Its `depositAddress` is the invoice's payment hash, and `paymentRequest` is `null` for every other coin.
+
+No charge, payment link or invoice asks for less than the lowest price of its currency, below which a payment would be mostly network fees: 0.50 in USD, EUR, GBP and CHF, 0.70 in CAD, 0.80 in AUD and 25.00 in TRY. A lower `amount` throws a `ValidationException` on `amount`, such as `Enter at least €0.50.`, and a coin with a minimum of its own can ask for more ([Supported coins](#supported-coins)).
+
 `metadata` holds up to 20 keys of at most 40 characters each. Values are strings, numbers, booleans or `null`, and a string is at most 500 characters.
 
 An account can create 300 charges in each mode within 30 minutes, through the API, the MCP server and the dashboard together; canceled charges count, paid live ones do not, and payments customers start on the hosted checkout are not counted. Past that, `create()` throws a `RateLimitException` whose `retryAfter()` says how many seconds to wait.
@@ -239,6 +244,7 @@ $tipJar = $velirapay->paymentLinks->create([
     'min_amount' => '1.00',
 ]);
 
+$link = $velirapay->paymentLinks->retrieve('p4n8r2t6y1ua');
 $velirapay->paymentLinks->update($link->id, ['title' => 'Pro plan (yearly)']);
 $velirapay->paymentLinks->archive($link->id); // stops taking payments
 $velirapay->paymentLinks->restore($link->id);
@@ -266,6 +272,7 @@ $invoice = $velirapay->invoices->create([
 echo $invoice->number;    // INV-0042
 echo $invoice->hostedUrl;
 
+$invoice = $velirapay->invoices->retrieve($invoice->id);
 $velirapay->invoices->send($invoice->id); // email it, or send a reminder
 $velirapay->invoices->void($invoice->id);
 
@@ -293,6 +300,8 @@ $coupon = $velirapay->coupons->create([
 
 $coupon->id;              // "SPRING10": the code is the id, and is matched in any case
 $coupon->timesRedeemed;   // how many paid charges used it
+
+$coupon = $velirapay->coupons->retrieve('spring10');
 
 $velirapay->coupons->update('SPRING10', ['active' => false]); // pause it
 $velirapay->coupons->delete('SPRING10'); // charges that used it keep its code and their discount
@@ -359,6 +368,8 @@ $event->charge;  // the charge as it is now, without its timeline
 List them to see from your code why deliveries are not arriving:
 
 ```php
+use VeliraPay\Enums\WebhookDeliveryStatus;
+
 foreach ($velirapay->webhookEndpoints->list() as $endpoint) {
     $endpoint->url;
     $endpoint->events;                // the event types it takes
@@ -369,7 +380,9 @@ foreach ($velirapay->webhookEndpoints->list() as $endpoint) {
     $endpoint->failedDeliveriesCount;
 }
 
-foreach ($velirapay->webhookEndpoints->deliveries('12', ['status' => 'failed']) as $delivery) {
+$endpoint = $velirapay->webhookEndpoints->retrieve('12');
+
+foreach ($velirapay->webhookEndpoints->deliveries('12', ['status' => WebhookDeliveryStatus::Failed]) as $delivery) {
     $delivery->event;          // "charge.paid"
     $delivery->responseStatus; // what the endpoint last answered
     $delivery->error;
@@ -398,9 +411,11 @@ Attempts are kept as long as their delivery, 30 days. A delivery sent before the
 A key with the sensitive `webhook_endpoints:write` permission ticked can also add and change them. A new endpoint is sent its verification challenge at once, and the answer that adds it, or rotates its secret, is the only one that carries the signing secret:
 
 ```php
+use VeliraPay\Enums\EventType;
+
 $endpoint = $velirapay->webhookEndpoints->create([
     'url' => 'https://example.com/webhooks/velirapay',
-    'events' => ['charge.paid', 'invoice.paid'],
+    'events' => [EventType::ChargePaid, EventType::InvoicePaid],
 ]);
 
 $endpoint->secret;            // "whsec_…", store it now: it is never returned again
@@ -415,6 +430,22 @@ $velirapay->webhookEndpoints->delete('12');
 ```
 
 Adding an endpoint, giving one a new `url`, `verify()`, `test()` and `retryDelivery()` each send the endpoint a request, so together they are limited to 10 a minute per key. Past that the API answers 429: a short wait is [retried](#retries-and-idempotency) for you, and a longer one throws a `RateLimitException` whose `retryAfter()` says how many seconds to wait.
+
+The secret is never kept for a retry. When the answer to `create()` or `rotateSecret()` is lost, the library sends the request again under the same idempotency key, and the API answers it with a `ConflictException` whose `wasReplayed()` is `true`: the endpoint was added, or its secret replaced, but the secret is gone. Find the endpoint with `list()` if it was new, and rotate its secret to get one you can read; after a lost rotation, give your receiver the new secret straight away, since the one it has stops signing:
+
+```php
+use VeliraPay\Exceptions\ConflictException;
+
+try {
+    $secret = $velirapay->webhookEndpoints->rotateSecret('12')->secret;
+} catch (ConflictException $exception) {
+    if (! $exception->wasReplayed()) {
+        throw $exception;
+    }
+
+    $secret = $velirapay->webhookEndpoints->rotateSecret('12')->secret; // the lost one is replaced again, under a new key
+}
+```
 
 ## Your account
 
@@ -456,8 +487,17 @@ The plan is on the account too: `$account->plan` ("free" or "pro"), `$account->f
 A key with the sensitive `account:write` or `payment_settings:write` permission can change the account, in the shape it is read in, with `null` to clear a field:
 
 ```php
-$velirapay->account->update(['display_name' => 'Acme', 'checkout' => ['appearance' => 'dark']]);
-$velirapay->account->updatePaymentSettings(['underpayment_tolerance' => '2', 'invoice_reminders' => true]);
+use VeliraPay\Enums\CheckoutAppearance;
+use VeliraPay\Enums\CheckoutLocale;
+use VeliraPay\Enums\Currency;
+
+$velirapay->account->update(['display_name' => 'Acme', 'checkout' => ['appearance' => CheckoutAppearance::Dark]]);
+$velirapay->account->updatePaymentSettings([
+    'default_currency' => Currency::EUR,
+    'underpayment_tolerance' => '2',
+    'checkout_locale' => CheckoutLocale::French,
+    'invoice_reminders' => true,
+]);
 ```
 
 ### Overview and activity
@@ -488,30 +528,82 @@ foreach ($velirapay->activity->list(['action' => 'sensitive']) as $entry) { // n
 ### Payout addresses
 
 ```php
+use VeliraPay\Enums\AddressNetwork;
+
 foreach ($velirapay->payoutAddresses->list() as $address) { // needs payout_addresses:read
-    $address->network; // "bitcoin", "evm", …
-    $address->address; // null while there is none: payouts in its coins wait for one
+    $address->network;          // "bitcoin", "evm", …, and $address->addressNetwork() the AddressNetwork case
+    $address->address;          // null while there is none: payouts in its coins wait for one
+    $address->assets;           // the coins on offer on that network
+    $address->payoutsHeldUntil; // until when payouts to a newly saved address wait
 }
 
-$velirapay->payoutAddresses->update('bitcoin', ['address' => 'bc1q…']);
+$velirapay->payoutAddresses->update(AddressNetwork::Bitcoin, ['address' => 'bc1q…']);
+$velirapay->payoutAddresses->delete(AddressNetwork::Evm); // its payouts wait for a new address
 ```
 
-With one entry per network, this `list()` returns a plain array rather than a page. Changing one needs the sensitive `payout_addresses:write` permission and an owner switching on "Let API keys and AI apps change payout addresses" under Payment settings. Owners and admins are emailed about every change, and payouts to a new address wait 48 hours once the account has been paid out.
+There is one address per network family: `evm` serves Ethereum and its tokens, while BNB Chain, Base, Arbitrum One and Polygon each have their own. With one entry per network, this `list()` returns a plain array rather than a page. Changing one needs the sensitive `payout_addresses:write` permission and an owner switching on "Let API keys and AI apps change payout addresses" under Payment settings, which `$account->apiPayoutAddressChanges` reads. Owners and admins are emailed about every change, and payouts to a new address wait 48 hours once the account has been paid out.
 
 ### API keys, members and Pro
 
 ```php
-$apiKey = $velirapay->apiKeys->create(['name' => 'Shop server', 'permissions' => ['charges:read', 'charges:write']]);
+use VeliraPay\Enums\ApiKeyPermission;
+use VeliraPay\Enums\Asset;
+use VeliraPay\Enums\MemberRole;
+
+$apiKey = $velirapay->apiKeys->create([
+    'name' => 'Shop server',
+    'permissions' => [ApiKeyPermission::ChargesRead, ApiKeyPermission::ChargesWrite], // leave it out for full access
+    'allowed_ips' => ['203.0.113.7'],                                                  // leave it out for anywhere
+]);
 $apiKey->key; // "vp_live_…", shown this once
 
-$velirapay->invitations->create(['email' => 'grace@example.com', 'role' => 'admin']);
-$velirapay->members->update('3', ['role' => 'finance']); // admin, finance, support or viewer
+foreach ($velirapay->apiKeys->list() as $key) {
+    $key->prefix;      // "vp_live_8Kq2", never the key itself
+    $key->lastUsedAt;
+}
 
-$payment = $velirapay->billing->startProPayment(['asset' => 'BTC']); // with a live key
+$velirapay->apiKeys->update($apiKey->id, ['name' => 'Shop server (EU)', 'allowed_ips' => null]);
+$velirapay->apiKeys->revoke($apiKey->id); // refused from its next request
+
+foreach ($velirapay->members->list() as $member) {
+    $member->email;
+    $member->role; // "owner", "admin", "finance", "support" or "viewer"
+}
+
+$velirapay->members->update('3', ['role' => MemberRole::Finance]); // admin, finance, support or viewer
+$velirapay->members->remove('3');                                  // also revokes the API keys they made
+
+$invitation = $velirapay->invitations->create(['email' => 'grace@example.com', 'role' => MemberRole::Admin]);
+$waiting = $velirapay->invitations->list();
+$velirapay->invitations->cancel($invitation->id);
+
+$payment = $velirapay->billing->startProPayment(['asset' => Asset::BTC]); // with a live key
 $payment->checkoutUrl; // where to pay a month of Pro
 ```
 
 `permissions` takes `VeliraPay\Enums\ApiKeyPermission` cases, such as `ApiKeyPermission::ChargesRead`, or their values. `api_keys:read`, `api_keys:write`, `members:read` and `members:write` are sensitive. A key can make or change no key with a permission or an IP address it does not have itself, nor touch a key that reaches further. Only a key an owner made changes a role or removes a member, and owners are never changed this way. `billing:write` comes with full access.
+
+A new key is shown once and never kept for a retry. When the answer to `apiKeys->create()` is lost, the library sends the request again under the same idempotency key, and the API answers it with a `ConflictException` whose `wasReplayed()` is `true`: the key was made, but nobody can read it. Find it with `apiKeys->list()`, revoke it, and create another:
+
+```php
+use VeliraPay\Exceptions\ConflictException;
+
+try {
+    $apiKey = $velirapay->apiKeys->create(['name' => 'Shop server']);
+} catch (ConflictException $exception) {
+    if (! $exception->wasReplayed()) {
+        throw $exception;
+    }
+
+    foreach ($velirapay->apiKeys->list() as $key) {
+        if ($key->name === 'Shop server' && $key->lastUsedAt === null) {
+            $velirapay->apiKeys->revoke($key->id);
+        }
+    }
+
+    $apiKey = $velirapay->apiKeys->create(['name' => 'Shop server']);
+}
+```
 
 ## Lists and pagination
 
@@ -607,16 +699,23 @@ if ($event->isVerification()) {
     exit;
 }
 
+// A sample from the dashboard's "Send test event" button or webhookEndpoints->test(), about a made-up charge.
+if ($event->test) {
+    http_response_code(204);
+    exit;
+}
+
 // The same event can arrive more than once: remember this key, and skip the events you have handled.
 $key = $event->eventId ?? $event->id;
 
 switch ($event->type) {
     case 'charge.payment_detected':
         // Seen on-chain, not confirmed yet: tell the customer, but do not fulfil.
-        $txid = $event->transaction->txid;
+        $txid = $event->transaction?->txid;
         break;
     case 'charge.paid':
-        $orderId = $event->charge->metadata['order_id'];
+        // A charge made without your metadata, such as one through a payment link, has none.
+        $orderId = $event->charge?->metadata['order_id'] ?? null;
         // Fulfil the order.
         break;
     case 'charge.expired':
@@ -651,7 +750,11 @@ Route::post('/webhooks/velirapay', function (Request $request) {
         return response()->json(['challenge' => $event->challenge()]);
     }
 
-    if ($event->is('charge.paid')) {
+    if ($event->test) {
+        return response()->noContent();
+    }
+
+    if ($event->is('charge.paid') && $event->charge !== null) {
         ProcessPaidCharge::dispatch($event->charge->id);
     }
 
@@ -669,7 +772,7 @@ To keep the route in `routes/web.php`, leave its path out of CSRF protection in 
 
 Calling `->withoutMiddleware(ValidateCsrfToken::class)` on the route, as earlier versions of this README suggested, no longer works on Laravel 13: CSRF protection is now the `PreventRequestForgery` middleware, and `ValidateCsrfToken` is only a deprecated subclass of it, so leaving it out leaves nothing out. Laravel 13 also renames `validateCsrfTokens()` to `preventRequestForgery()`, though the old name still works.
 
-With a PSR-7 request, use `Webhook::constructEventFromRequest($request, $secret)`.
+With a PSR-7 request, use `Webhook::constructEventFromRequest($request, $secret)`. To check a signature without parsing the body, call `Webhook::verifySignature($payload, $signature, $secret)`, which throws the same `SignatureVerificationException`.
 
 Some things to know:
 
@@ -680,7 +783,8 @@ Some things to know:
 - **Skip duplicates by event.** A retried delivery keeps its id (`$event->id`, also the `X-VeliraPay-Delivery` header), but that id belongs to one endpoint: each endpoint gets its own copy of an event, under its own id. `$event->eventId` is the same on every copy and is the event's id in `GET /v1/events`, so `$event->eventId ?? $event->id` is the key to remember.
 - **Fulfil once.** A paid invoice sends both `charge.paid`, for the charge that paid it, and `invoice.paid`. Fulfil on one of them, not both.
 - **Deliveries can arrive out of order.** When the order matters, fetch the current state with `$velirapay->charges->retrieve($event->charge->id)` rather than trusting the payload.
-- **Test deliveries.** The dashboard's "Send test event" button sends a sample `charge.paid` with `$event->test` set to `true` and no `eventId`. Its charge is a made-up sample without many of a real one's fields, such as `transactions` and `customer`.
+- **Test deliveries.** The dashboard's "Send test event" button, and `webhookEndpoints->test()`, send a sample `charge.paid` with `$event->test` set to `true` and no `eventId`. Its charge is a made-up sample without many of a real one's fields, such as `transactions` and `customer`, so answer it with a 2xx and fulfil nothing.
+- **Modes.** A test-mode charge is announced to the endpoints added in test mode, and a live one to the live ones, so an endpoint hears of one mode only. If one URL serves both, compare `$event->mode` with the mode of the key your shop uses, `$velirapay->mode()?->value`, and leave the other mode's events alone; keep handling test mode while you try your integration with a `vp_test_` key.
 - **Signatures expire.** A signature more than 5 minutes from the current time is rejected, which stops an intercepted delivery from being replayed. Change the limit with the non-negative `tolerance` argument; `0` explicitly disables the age check.
 
 `charge.payment_detected` arrives as soon as a transfer to a charge is seen on-chain, before it is confirmed; `charge.late_payment` when one reaches a charge that already expired, was canceled or was paid, or tops up an underpaid charge after its rate lock ended, which is announced once it has confirmed. A late payment to an expired, canceled or underpaid charge waits for you to accept it; one on top of a paid charge is counted automatically. Both carry that transfer as `$event->transaction` (`txid`, `amount`, `confirmations`, `requiredConfirmations`, `credited`, `explorerUrl`, `seenAt`); for every other event it is `null`.
@@ -710,9 +814,12 @@ A failed request throws an exception carrying the API's message:
 | `RateLimitException` | Too many requests (429), including an invoice emailed again within 10 minutes, more than 100 emails to customers an hour, and more than 300 charges created in 30 minutes. `retryAfter()` says how many seconds to wait. |
 | `ServerException` | VeliraPay had a problem (5xx), such as no exchange rate being available to create a charge with (503). |
 | `InvalidRequestException` | Any other 4xx, such as an `Idempotency-Key` longer than 255 characters (400). |
+| `UnexpectedResponseException` | A successful answer the library cannot read, such as a page that is not JSON from something between you and the API. |
 | `ConnectionException` | The API could not be reached, or its answer could not be read, after the [retries](#retries-and-idempotency). `idempotencyKey` is the key a write was sent with, to repeat it safely. |
+| `SignatureVerificationException` | A [webhook](#webhooks)'s signature is missing, does not match the secret, or is too old. |
+| `InvalidArgumentException` | The library was given something it cannot use, before any request is sent, such as a key that does not start with `vp_live_` or `vp_test_`, an empty id, an empty webhook secret or a webhook payload that is not a JSON object. |
 
-They live in `VeliraPay\Exceptions`. All of them implement `VeliraPayException`, and all but `ConnectionException` extend `ApiException`, whose `retryAfter()` returns the response's `Retry-After` in seconds, or `null` when it had none.
+They live in `VeliraPay\Exceptions`. All of them implement `VeliraPayException`. All but `ConnectionException`, `SignatureVerificationException` and `InvalidArgumentException` extend `ApiException`, whose `retryAfter()` returns the response's `Retry-After` in seconds, or `null` when it had none.
 
 ```php
 use VeliraPay\Exceptions\ApiException;
@@ -721,7 +828,7 @@ use VeliraPay\Exceptions\ValidationException;
 try {
     $charge = $velirapay->charges->create(['amount' => '0', 'currency' => 'EUR', 'asset' => 'BTC']);
 } catch (ValidationException $exception) {
-    $exception->errors();              // ['amount' => ['The amount field must be at least 0.01.']]
+    $exception->errors();              // ['amount' => ['Enter at least €0.50.']]
     $exception->firstError('amount');
 } catch (ApiException $exception) {
     $exception->status;                // the HTTP status
@@ -770,14 +877,16 @@ try {
 Keys starting with `vp_test_` work in test mode: charges are paid with test coins on each chain's test network, and nothing touches real funds. Test and live objects are fully separate: a live key cannot see test charges, and each mode has its own webhooks. Invoices are only emailed to members of your account.
 
 ```php
-$velirapay->isTestMode(); // read from the key's prefix
+$velirapay->mode();       // Mode::Test, read from the key's prefix
+$velirapay->isTestMode(); // true
+$velirapay->isLiveMode(); // false
 
 // Pay a test charge without any coins: it becomes paid, and the webhooks and emails go out as for a real payment.
 $velirapay->charges->simulate('k3v9x2m7q8wz');
 $velirapay->charges->simulate('k3v9x2m7q8wz', ['amount' => '0.001']); // less than is due, to try an underpayment
 ```
 
-BNB Chain has no test mode, so its coins can only be used with a live key.
+BNB Chain, Base, Arbitrum One and Polygon have no test mode, so their coins can only be used with a live key; `assets->list()` with a test key shows what test mode takes.
 
 Every key starts with `vp_live_` or `vp_test_`, and the client throws an `InvalidArgumentException` for any other, which the API would refuse.
 
@@ -786,6 +895,7 @@ Every key starts with `vp_live_` or `vp_test_`, and the client throws an `Invali
 ```php
 $velirapay = new VeliraPayClient(
     apiKey: getenv('VELIRAPAY_API_KEY'),
+    baseUrl: 'https://api.velirapay.com', // the API's address, VeliraPayClient::DEFAULT_BASE_URL
     maxRetries: 2,           // 0 turns retries off
     maxRetryAfter: 10,       // the longest Retry-After, in seconds, waited out before trying again
     timeout: 30.0,           // seconds, for the Guzzle client the library creates
@@ -840,7 +950,9 @@ In a Laravel application, install [velirapay/velirapay-laravel](https://github.c
 composer install
 composer test        # PHPUnit
 composer types       # PHPStan
-composer lint        # Pint
+composer lint        # Pint, fixing what it finds
+composer lint:check  # Pint, without changing anything
+composer check       # lint:check, types and test, as CI runs them
 ```
 
 ## License
