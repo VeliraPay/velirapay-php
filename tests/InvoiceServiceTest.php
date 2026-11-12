@@ -23,7 +23,7 @@ final class InvoiceServiceTest extends TestCase
                 ['description' => 'Consulting', 'quantity' => 10, 'unit_amount' => '100.00'],
                 ['description' => 'Hosting', 'quantity' => '2.5', 'unit_amount' => '100.00'],
             ],
-            'due_at' => new DateTimeImmutable('2026-10-15 18:30:00', new DateTimeZone('America/New_York')),
+            'due_at' => new DateTimeImmutable('2026-10-15 22:30:00', new DateTimeZone('America/New_York')),
             'send_email' => true,
         ]);
 

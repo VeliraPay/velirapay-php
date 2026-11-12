@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace VeliraPay\Tests;
 
+use DateTime;
 use DateTimeImmutable;
+use DateTimeZone;
 use VeliraPay\Enums\Asset;
 use VeliraPay\Enums\PricingType;
 use VeliraPay\Resources\PaymentLink;
@@ -38,6 +40,21 @@ final class PaymentLinkServiceTest extends TestCase
             'expires_at' => '2026-12-31T23:59:59+00:00',
         ], self::body($request));
         $this->assertSame('p4n8r2t6y1ua', $link->id);
+    }
+
+    public function test_a_payment_links_expiry_is_sent_in_utc_and_the_date_given_is_left_alone(): void
+    {
+        $this->http->json(['data' => self::fixture('payment_link')], 201)->json(['data' => self::fixture('payment_link')]);
+        $expiresAt = new DateTime('2026-07-01 12:00:00', new DateTimeZone('America/New_York'));
+
+        $this->client()->paymentLinks->create(['title' => 'Tip jar', 'pricing_type' => PricingType::Open, 'currency' => 'USD', 'expires_at' => $expiresAt]);
+
+        $this->assertSame('2026-07-01T16:00:00+00:00', self::body($this->http->lastRequest())['expires_at']);
+        $this->assertSame('America/New_York', $expiresAt->getTimezone()->getName());
+
+        $this->client()->paymentLinks->update('p4n8r2t6y1ua', ['expires_at' => new DateTimeImmutable('2026-12-31 23:59:59', new DateTimeZone('Europe/Paris'))]);
+
+        $this->assertSame('2026-12-31T22:59:59+00:00', self::body($this->http->lastRequest())['expires_at']);
     }
 
     public function test_a_payment_link_is_read_into_typed_properties(): void

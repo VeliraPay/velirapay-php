@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace VeliraPay\Tests;
 
 use DateTimeImmutable;
+use DateTimeZone;
 
 /**
  * The overview, settings, payout addresses, activity log and Pro billing.
@@ -112,6 +113,15 @@ final class AccountManagementTest extends TestCase
         $this->assertSame(['action' => 'sensitive'], self::query($this->http->lastRequest()));
         $this->assertSame('api_key.created', $entry->action);
         $this->assertSame(['prefix' => 'vp_live_aaaa'], $entry->properties);
+    }
+
+    public function test_the_activity_log_is_narrowed_to_the_days_dates_fall_on(): void
+    {
+        $this->http->json(['data' => [], 'meta' => ['current_page' => 1, 'last_page' => 1, 'per_page' => 25, 'total' => 0, 'mode' => 'live']]);
+
+        $this->client()->activity->list(['from' => new DateTimeImmutable('2026-11-01 00:30:00', new DateTimeZone('Europe/Paris')), 'to' => '2026-11-06']);
+
+        $this->assertSame(['from' => '2026-11-01', 'to' => '2026-11-06'], self::query($this->http->lastRequest()));
     }
 
     public function test_a_pro_payment_is_started(): void

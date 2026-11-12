@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace VeliraPay\Tests;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use VeliraPay\Enums\Asset;
 use VeliraPay\Enums\ChargeStatus;
 use VeliraPay\Exceptions\InvalidArgumentException;
@@ -289,6 +290,21 @@ final class ChargeServiceTest extends TestCase
         $this->assertSame(1, $page->perPage);
         $this->assertSame(3, $page->total);
         $this->assertTrue($page->hasMore());
+    }
+
+    public function test_the_dates_charges_are_listed_between_are_sent_in_utc(): void
+    {
+        $this->http->json(self::listResponse([]));
+
+        $this->client()->charges->list([
+            'created_from' => new DateTimeImmutable('2026-12-01 18:00:00', new DateTimeZone('Europe/Paris')),
+            'created_to' => new DateTimeImmutable('2026-12-31 23:59:59', new DateTimeZone('America/New_York')),
+        ]);
+
+        $this->assertSame([
+            'created_from' => '2026-12-01T17:00:00+00:00',
+            'created_to' => '2027-01-01T04:59:59+00:00',
+        ], self::query($this->http->lastRequest()));
     }
 
     public function test_a_charge_is_canceled(): void

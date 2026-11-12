@@ -17,7 +17,7 @@ use VeliraPay\Resources\Coupon;
 final class CouponService extends Service
 {
     /**
-     * Create a coupon taking either percent_off or amount_off; currency is required with amount_off or min_amount.
+     * Create a coupon taking either percent_off or amount_off; currency is required with amount_off or min_amount. A DateTimeInterface given as expires_at is sent as the same moment in UTC, and a YYYY-MM-DD date ends at 23:59:59 UTC.
      *
      * @param  array{code: string, percent_off?: numeric-string|int|float|null, amount_off?: numeric-string|int|float|null, currency?: string|null, min_amount?: numeric-string|int|float|null, max_redemptions?: int|null, once_per_customer?: bool, payment_links?: list<string>|null, active?: bool, expires_at?: DateTimeInterface|string|null}  $params
      *
@@ -41,7 +41,7 @@ final class CouponService extends Service
     }
 
     /**
-     * Change a coupon's limits; its code, discount, currency and minimum price cannot change.
+     * Change a coupon's limits; its code, discount, currency and minimum price cannot change. A DateTimeInterface given as expires_at is sent as the same moment in UTC.
      *
      * @param  array{max_redemptions?: int|null, once_per_customer?: bool, payment_links?: list<string>|null, active?: bool, expires_at?: DateTimeInterface|string|null}  $params
      *

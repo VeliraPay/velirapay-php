@@ -70,6 +70,8 @@ That is the way to charge a customer: create a charge with what you already know
 
 Amounts are always strings, such as `'49.90'`, never floats, so no precision is lost. Use [bcmath](https://www.php.net/manual/en/book.bc.php) or a money library to do arithmetic on them.
 
+Dates can be given as strings or as `DateTimeInterface` objects. A date and time is sent as the same moment in UTC, whatever its time zone, and a date the API reads as a day, an invoice's `due_at` or the activity log's `from` and `to`, as the day it falls on where it is.
+
 Each group of endpoints is a property, such as `$velirapay->charges`, and also a method, `$velirapay->charges()`, which facades need.
 
 ## Which one to use

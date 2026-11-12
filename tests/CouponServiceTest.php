@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace VeliraPay\Tests;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use GuzzleHttp\Psr7\Response;
 use VeliraPay\Resources\Coupon;
 
@@ -36,6 +37,19 @@ final class CouponServiceTest extends TestCase
             'expires_at' => '2026-12-31T23:59:59+00:00',
         ], self::body($request));
         $this->assertSame('SPRING10', $coupon->code);
+    }
+
+    public function test_a_coupons_expiry_is_sent_in_utc(): void
+    {
+        $this->http->json(['data' => self::fixture('coupon')], 201)->json(['data' => self::fixture('coupon')]);
+
+        $this->client()->coupons->create(['code' => 'SPRING10', 'percent_off' => '10', 'expires_at' => new DateTimeImmutable('2026-12-31 23:59:59', new DateTimeZone('Europe/Paris'))]);
+
+        $this->assertSame('2026-12-31T22:59:59+00:00', self::body($this->http->lastRequest())['expires_at']);
+
+        $this->client()->coupons->update('SPRING10', ['expires_at' => new DateTimeImmutable('2027-01-15 09:00:00', new DateTimeZone('America/New_York'))]);
+
+        $this->assertSame('2027-01-15T14:00:00+00:00', self::body($this->http->lastRequest())['expires_at']);
     }
 
     public function test_a_coupon_is_read_into_typed_properties(): void

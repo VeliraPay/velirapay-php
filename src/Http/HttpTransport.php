@@ -6,7 +6,9 @@ namespace VeliraPay\Http;
 
 use BackedEnum;
 use Closure;
+use DateTimeImmutable;
 use DateTimeInterface;
+use DateTimeZone;
 use JsonException;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
@@ -214,7 +216,7 @@ final class HttpTransport
     }
 
     /**
-     * Replace enums and dates in request parameters with the values the API expects.
+     * Replace enums and dates in request parameters with the values the API expects, dates as the same moment in UTC.
      *
      * @param  array<array-key, mixed>  $values
      * @return array<array-key, mixed>
@@ -224,7 +226,7 @@ final class HttpTransport
         foreach ($values as $key => $value) {
             $values[$key] = match (true) {
                 $value instanceof BackedEnum => $value->value,
-                $value instanceof DateTimeInterface => $value->format(DATE_ATOM),
+                $value instanceof DateTimeInterface => DateTimeImmutable::createFromInterface($value)->setTimezone(new DateTimeZone('UTC'))->format(DATE_ATOM),
                 is_array($value) => self::normalize($value),
                 default => $value,
             };

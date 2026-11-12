@@ -43,7 +43,7 @@ final class ChargeService extends Service
     }
 
     /**
-     * List charges, newest first.
+     * List charges, newest first. A DateTimeInterface given as created_from or created_to is sent as the same moment in UTC.
      *
      * @param  array{status?: ChargeStatus|string, payment_link?: string, asset?: Asset|string, search?: string, created_from?: DateTimeInterface|string, created_to?: DateTimeInterface|string, page?: int, per_page?: int}  $params
      * @return Page<Charge>

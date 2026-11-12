@@ -8,6 +8,7 @@ All notable changes to this library are documented here. It follows [Semantic Ve
 - Cloudflare's 520 to 524, its answers when it gets nothing from VeliraPay, are retried like 502, 503 and 504.
 - `ConnectionException::$idempotencyKey`: the key a write was sent with, the one the library made up included, so the call can be repeated safely once the API answers again.
 - `ConflictException::wasReplayed()`: whether the API answered from an earlier request with the same idempotency key. It is what a retried `apiKeys->create()`, `webhookEndpoints->create()` or `rotateSecret()` gets when its first answer was lost: the write went through, but the key or signing secret it carried is shown once and gone. Their docblocks and the README say how to recover.
+- A `DateTimeInterface` given as `created_from`, `created_to` or `expires_at` is sent as the same moment in UTC. It went out with its own offset, which the API read as a time in UTC, so a date outside UTC moved a charge filter, a coupon's expiry or a payment link's by hours. An invoice's `due_at` is still sent as the day it falls on where it is, and the activity log's `from` and `to` now take a `DateTimeInterface` the same way, where the API ignored a full timestamp.
 
 ## 0.6.6 - 2026-11-12
 
