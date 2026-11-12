@@ -863,7 +863,7 @@ Requests that fail with a network error, an answer cut off or timed out after it
 
 A `Retry-After` longer than `maxRetryAfter` (10 seconds unless [configured](#configuration) otherwise) is not waited out: the exception is thrown straight away, and its `retryAfter()` says how long to wait.
 
-While retries are on, each write carries an `Idempotency-Key` header, so the API carries out a retried request once and answers the retry with the first response. The library makes up a key per call; pass your own to make a call safe to repeat across processes:
+While retries are on, each write carries an `Idempotency-Key` header, so the API carries out a retried request once and answers the retry with the first response. The library makes up a key per call, and in place of a blank one; pass your own to make a call safe to repeat across processes:
 
 ```php
 $charge = $velirapay->charges->create($params, idempotencyKey: 'order-1042-attempt-1');

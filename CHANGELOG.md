@@ -5,6 +5,7 @@ All notable changes to this library are documented here. It follows [Semantic Ve
 ## Unreleased
 
 - `$charge->customer->ipCountry`, `ipAsn` and `ipNetwork`, which the API's answers and webhooks now carry, to help spot bots and people hiding behind servers: the country the checkout placed the IP address in (an ISO 3166 two-letter code, or `T1` for Tor; null for a charge created through the API), and the number and owner of the network it belongs to, such as `24940` and `"Hetzner Online GmbH"`. Each is null when it is not known, or in a payload from before VeliraPay sent it. They come last in `Customer`'s constructor, with null defaults.
+- A blank idempotency key, `''` or only whitespace, is treated as none: the library makes one up, as it does when none is given, and sends none with retries off. It was sent as given, which the API reads as no key at all, so a write retried after a lost answer could be carried out twice, and one holding a line break threw an `InvalidArgumentException` from Guzzle's PSR-7 messages before anything was sent.
 
 ## 0.6.8 - 2026-11-12
 

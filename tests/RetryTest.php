@@ -63,6 +63,43 @@ final class RetryTest extends TestCase
         $this->assertSame('order-1042', $this->http->requests[1]->getHeaderLine('Idempotency-Key'));
     }
 
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function blankIdempotencyKeys(): iterable
+    {
+        yield 'empty' => [''];
+        yield 'spaces' => ['   '];
+        yield 'tab and newline' => ["\t\n"];
+    }
+
+    #[DataProvider('blankIdempotencyKeys')]
+    public function test_a_blank_idempotency_key_is_replaced_by_one_of_the_librarys_own(string $blank): void
+    {
+        $this->http->json(['message' => 'Bad Gateway'], 502)->json(['data' => self::fixture('charge')], 201);
+
+        $this->transport()->request('POST', '/v1/charges', [], ['asset' => 'BTC'], $blank);
+
+        $this->assertCount(2, $this->http->requests);
+        $key = $this->http->requests[0]->getHeaderLine('Idempotency-Key');
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/', $key);
+        $this->assertSame($key, $this->http->requests[1]->getHeaderLine('Idempotency-Key'));
+    }
+
+    #[DataProvider('blankIdempotencyKeys')]
+    public function test_a_blank_idempotency_key_is_not_sent_when_retries_are_off(string $blank): void
+    {
+        $this->http->queue(new class('The response could not be read.') extends RuntimeException implements ClientExceptionInterface {});
+
+        try {
+            $this->transport(maxRetries: 0)->request('POST', '/v1/charges', [], ['asset' => 'BTC'], $blank);
+            $this->fail('No exception was thrown.');
+        } catch (ConnectionException $exception) {
+            $this->assertNull($exception->idempotencyKey);
+            $this->assertFalse($this->http->lastRequest()->hasHeader('Idempotency-Key'));
+        }
+    }
+
     public function test_a_server_error_is_retried_for_reads_only(): void
     {
         $this->http

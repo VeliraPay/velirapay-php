@@ -77,6 +77,11 @@ final class HttpTransport
     {
         $method = strtoupper($method);
 
+        // The API reads a blank key as none, so one is treated as none here too.
+        if ($idempotencyKey !== null && trim($idempotencyKey) === '') {
+            $idempotencyKey = null;
+        }
+
         // A retried write must not be carried out twice, so every attempt carries the same key.
         if ($method !== 'GET' && $idempotencyKey === null && $this->maxRetries > 0) {
             $idempotencyKey = self::uuid();
