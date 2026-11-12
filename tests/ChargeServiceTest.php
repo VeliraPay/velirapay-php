@@ -89,7 +89,9 @@ final class ChargeServiceTest extends TestCase
         $this->assertTrue($charge->isPaid());
         $this->assertFalse($charge->isOpen());
         $this->assertSame('p4n8r2t6y1ua', $charge->paymentLink);
+        $this->assertNull($charge->paymentLinkTitle);
         $this->assertNull($charge->invoice);
+        $this->assertNull($charge->invoiceNumber);
         $this->assertSame('150.00', $charge->fiatAmount);
         $this->assertSame('EUR', $charge->fiatCurrency);
         $this->assertNull($charge->coupon);

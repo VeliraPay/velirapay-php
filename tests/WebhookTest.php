@@ -47,6 +47,28 @@ final class WebhookTest extends TestCase
         $this->assertNull($charge->checkoutUrl);
     }
 
+    public function test_a_delivered_charge_names_its_payment_link_and_its_invoice(): void
+    {
+        $payload = self::payload('webhook_charge');
+
+        $charge = Webhook::constructEvent($payload, Webhook::signatureHeader($payload, self::SECRET), self::SECRET)->charge;
+
+        $this->assertNotNull($charge);
+        $this->assertSame('p4n8r2t6y1ua', $charge->paymentLink);
+        $this->assertSame('Pro plan', $charge->paymentLinkTitle);
+        $this->assertNull($charge->invoice);
+        $this->assertNull($charge->invoiceNumber);
+
+        $payload = '{"id":"5f0c6f5e-8d1b-4a53-9a57-3c2b1d0e9f87","event_id":"9b1f7a3e-2c4d-4e8f-a6b0-1d2c3e4f5a6b","event":"charge.paid","mode":"live","created_at":"2026-09-20T10:05:42.000000Z","data":{"charge":{"code":"m2q7w4e9r1ty","status":"paid","payment_link":null,"invoice":{"code":"w7c2h5j9d3kx","number":"INV-0042"}}}}';
+
+        $paid = Webhook::constructEvent($payload, Webhook::signatureHeader($payload, self::SECRET), self::SECRET)->charge;
+
+        $this->assertNotNull($paid);
+        $this->assertNull($paid->paymentLinkTitle);
+        $this->assertSame('w7c2h5j9d3kx', $paid->invoice);
+        $this->assertSame('INV-0042', $paid->invoiceNumber);
+    }
+
     public function test_a_payment_detected_delivery_carries_the_transfer_that_was_seen(): void
     {
         $payload = self::payload('webhook_payment_detected');

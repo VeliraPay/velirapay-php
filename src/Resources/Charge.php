@@ -98,6 +98,10 @@ final class Charge extends ApiResource
         public readonly ?string $networkSurcharge = null,
         /** The Lightning invoice (BOLT11) the customer pays, for BTC_LIGHTNING; null for every other coin. */
         public readonly ?string $paymentRequest = null,
+        /** The title of the payment link the charge was made through, in webhooks alone; null in the API's answers. */
+        public readonly ?string $paymentLinkTitle = null,
+        /** The number of the invoice the charge pays, such as "INV-0042", in webhooks alone; null in the API's answers. */
+        public readonly ?string $invoiceNumber = null,
     ) {
         parent::__construct($attributes);
 
@@ -157,6 +161,8 @@ final class Charge extends ApiResource
             successMessage: self::nullableString($data, 'success_message'),
             networkSurcharge: self::nullableString($data, 'network_surcharge'),
             paymentRequest: self::nullableString($data, 'payment_request'),
+            paymentLinkTitle: self::nullableString(self::map($data, 'payment_link'), 'title'),
+            invoiceNumber: self::nullableString(self::map($data, 'invoice'), 'number'),
         );
     }
 

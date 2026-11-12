@@ -690,7 +690,7 @@ Some things to know:
 The charge and invoice in a delivery are not quite the ones the API returns:
 
 - A charge's coin amounts and exchange rate carry all 18 decimal places (`"0.002500000000000000"` rather than `"0.0025"`). Compare amounts as numbers, not as strings.
-- A charge has no `timeline`, `refunds`, `checkoutUrl` or `receiptUrl`. Its `payment_link` is `{code, title}` and its `invoice` is `{code, number}`: `$charge->paymentLink` and `$charge->invoice` hold the code, and `$charge->get('payment_link')` has the rest.
+- A charge has no `timeline`, `refunds`, `checkoutUrl` or `receiptUrl`. Its `payment_link` is `{code, title}` and its `invoice` is `{code, number}`: `$charge->paymentLink` and `$charge->invoice` hold the code, and `$charge->paymentLinkTitle` and `$charge->invoiceNumber` the rest, which are `null` on the charges the API returns.
 - An invoice has no `overdue` or `documentUrl`; both are `null`.
 - `charge.refunded` carries no refund. Read its amount, txid and reason from the event, with `$velirapay->events->retrieve($event->eventId)->details`, which holds `amount`, and `txid` and `reason` when you gave them.
 
