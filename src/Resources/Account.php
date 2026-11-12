@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace VeliraPay\Resources;
 
 use DateTimeImmutable;
+use VeliraPay\Enums\AccountType;
 use VeliraPay\Enums\Mode;
+use VeliraPay\Enums\PlanName;
 
 /**
  * The account an API key belongs to: a personal account or an organization.
@@ -29,7 +31,7 @@ final class Account extends ApiResource
         array $attributes,
         /** The account's slug. */
         public readonly string $id,
-        /** Either "personal" or "organization". */
+        /** One of the AccountType values: "personal" or "organization". */
         public readonly string $type,
         /** The account's name. */
         public readonly string $name,
@@ -43,7 +45,7 @@ final class Account extends ApiResource
         public readonly ?string $supportEmail,
         /** The checkout's accent colour, as "#rrggbb". */
         public readonly ?string $brandColor,
-        /** The currency new links and reports default to. */
+        /** The Currency value new links and reports default to. */
         public readonly string $defaultCurrency,
         /** How far short of the amount due, in percent, still counts as paid. */
         public readonly string $underpaymentTolerance,
@@ -58,7 +60,7 @@ final class Account extends ApiResource
         /** The phone number customers see next to the support email. */
         public readonly ?string $supportPhone = null,
         ?AccountBusiness $business = null,
-        /** "free" or "pro". */
+        /** One of the PlanName values: "free" or "pro". */
         public readonly string $plan = 'free',
         /** The share of each payment kept as the platform's fee, in percent. */
         public readonly string $feePercent = '0',
@@ -70,11 +72,11 @@ final class Account extends ApiResource
         public readonly ?string $termsUrl = null,
         /** The merchant's refund policy. */
         public readonly ?string $refundPolicyUrl = null,
-        /** The checkout's appearance, coin order, default coin and defaults. */
+        /** The checkout's appearance (a CheckoutAppearance value), coin order, default coin and defaults. */
         public readonly array $checkout = [],
         /** The invoice numbering, footer and business details settings. */
         public readonly array $invoices = [],
-        /** The fallback checkout language, or null for English. */
+        /** The fallback checkout language, a CheckoutLocale value, or null for English. */
         public readonly ?string $checkoutLocale = null,
         /** Whether automatic invoice reminders are enabled. */
         public readonly bool $invoiceReminders = false,
@@ -146,7 +148,7 @@ final class Account extends ApiResource
      */
     public function isPro(): bool
     {
-        return $this->plan === 'pro';
+        return $this->plan === PlanName::Pro->value;
     }
 
     /**
@@ -154,7 +156,7 @@ final class Account extends ApiResource
      */
     public function isOrganization(): bool
     {
-        return $this->type === 'organization';
+        return $this->type === AccountType::Organization->value;
     }
 
     /**

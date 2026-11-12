@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace VeliraPay\Services;
 
 use Generator;
+use VeliraPay\Enums\EventType;
+use VeliraPay\Enums\WebhookDeliveryStatus;
 use VeliraPay\Exceptions\ApiException;
 use VeliraPay\Exceptions\ConnectionException;
 use VeliraPay\Http\ApiResponse;
@@ -60,7 +62,7 @@ final class WebhookEndpointService extends Service
      * Add an endpoint and send it its verification challenge, which counts against the 10 requests a minute that verifying, testing and retrying share. The answer carries its signing secret, shown this once, and verificationError while it has not answered.
      * A ConflictException whose wasReplayed() is true means the endpoint was added, by this request retried after its answer was lost or by an earlier one with the same idempotency key, but its secret is gone: list the endpoints and rotate that one's secret.
      *
-     * @param  array{url: string, events: list<string>, description?: string|null, active?: bool}  $params
+     * @param  array{url: string, events: list<EventType|string>, description?: string|null, active?: bool}  $params
      *
      * @throws ApiException
      * @throws ConnectionException
@@ -73,7 +75,7 @@ final class WebhookEndpointService extends Service
     /**
      * Change an endpoint's url, events, description or active, only those given. A new url is verified again, which counts against the same 10 requests a minute, with verificationError while it has not answered.
      *
-     * @param  array{url?: string, events?: list<string>, description?: string|null, active?: bool}  $params
+     * @param  array{url?: string, events?: list<EventType|string>, description?: string|null, active?: bool}  $params
      *
      * @throws ApiException
      * @throws ConnectionException
@@ -131,7 +133,7 @@ final class WebhookEndpointService extends Service
     /**
      * List what the endpoint was sent, newest first, kept for 30 days.
      *
-     * @param  array{status?: string, event?: string, page?: int, per_page?: int}  $params
+     * @param  array{status?: WebhookDeliveryStatus|string, event?: EventType|string, page?: int, per_page?: int}  $params
      * @return Page<WebhookDelivery>
      *
      * @throws ApiException

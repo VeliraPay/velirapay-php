@@ -36,7 +36,7 @@ final class SupportedAsset extends ApiResource
         public readonly string $confirmationWait,
         /** Whether the account takes it right now, which needs a payout address for that network. */
         public readonly bool $accepted,
-        /** The currency exchangeRate and minimumPrice are in. */
+        /** The Currency value exchangeRate and minimumPrice are in. */
         public readonly string $currency,
         /** What one unit of the coin is worth in that currency right now, or null while no rate is available. */
         public readonly ?string $exchangeRate,

@@ -22,7 +22,7 @@ final class ProPayment extends ApiResource
         public readonly int $months,
         /** What it costs, in currency. */
         public readonly string $price,
-        /** The currency of the price. */
+        /** The Currency value of the price. */
         public readonly string $currency,
         /** The Asset value it is paid in. */
         public readonly string $asset,

@@ -6,6 +6,7 @@ namespace VeliraPay\Services;
 
 use DateTimeInterface;
 use Generator;
+use VeliraPay\Enums\ActivityAction;
 use VeliraPay\Enums\Mode;
 use VeliraPay\Exceptions\ApiException;
 use VeliraPay\Exceptions\ConnectionException;
@@ -20,7 +21,7 @@ final class ActivityService extends Service
     /**
      * List the account's activity log, newest first: the API key's mode, and what belongs to none, such as sign-ins. action takes an action or "sensitive", q a subject or the start of an IP address, from and to a day, as a YYYY-MM-DD date or the day a date falls on where it is, and network the key's own mode, to leave out what belongs to none.
      *
-     * @param  array{action?: string, person?: string, q?: string, from?: DateTimeInterface|string, to?: DateTimeInterface|string, network?: Mode|string, page?: int, per_page?: int}  $params
+     * @param  array{action?: ActivityAction|string, person?: string, q?: string, from?: DateTimeInterface|string, to?: DateTimeInterface|string, network?: Mode|string, page?: int, per_page?: int}  $params
      * @return Page<Activity>
      *
      * @throws ApiException
@@ -40,7 +41,7 @@ final class ActivityService extends Service
     /**
      * Iterate over the whole activity log, newest first, fetching pages as they are reached.
      *
-     * @param  array{action?: string, person?: string, q?: string, from?: DateTimeInterface|string, to?: DateTimeInterface|string, network?: Mode|string, per_page?: int}  $params
+     * @param  array{action?: ActivityAction|string, person?: string, q?: string, from?: DateTimeInterface|string, to?: DateTimeInterface|string, network?: Mode|string, per_page?: int}  $params
      * @return Generator<int, Activity>
      *
      * @throws ApiException

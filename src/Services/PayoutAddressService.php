@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace VeliraPay\Services;
 
+use VeliraPay\Enums\AddressNetwork;
 use VeliraPay\Exceptions\ApiException;
 use VeliraPay\Exceptions\ConnectionException;
 use VeliraPay\Resources\PayoutAddress;
@@ -27,16 +28,16 @@ final class PayoutAddressService extends Service
     }
 
     /**
-     * Point the payouts of one network, such as "bitcoin" or "evm", at an address.
+     * Point the payouts of one network, such as AddressNetwork::Bitcoin or "evm", at an address.
      *
      * @param  array{address: string}  $params
      *
      * @throws ApiException
      * @throws ConnectionException
      */
-    public function update(string $network, array $params, ?string $idempotencyKey = null): PayoutAddress
+    public function update(AddressNetwork|string $network, array $params, ?string $idempotencyKey = null): PayoutAddress
     {
-        return PayoutAddress::fromArray($this->request('PUT', self::path('/v1/payout-addresses/%s', $network), $params, $idempotencyKey));
+        return PayoutAddress::fromArray($this->request('PUT', self::path('/v1/payout-addresses/%s', self::network($network)), $params, $idempotencyKey));
     }
 
     /**
@@ -45,8 +46,16 @@ final class PayoutAddressService extends Service
      * @throws ApiException
      * @throws ConnectionException
      */
-    public function delete(string $network, ?string $idempotencyKey = null): PayoutAddress
+    public function delete(AddressNetwork|string $network, ?string $idempotencyKey = null): PayoutAddress
     {
-        return PayoutAddress::fromArray($this->request('DELETE', self::path('/v1/payout-addresses/%s', $network), null, $idempotencyKey));
+        return PayoutAddress::fromArray($this->request('DELETE', self::path('/v1/payout-addresses/%s', self::network($network)), null, $idempotencyKey));
+    }
+
+    /**
+     * Get the name of a network as the paths take it.
+     */
+    private static function network(AddressNetwork|string $network): string
+    {
+        return $network instanceof AddressNetwork ? $network->value : $network;
     }
 }

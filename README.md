@@ -20,6 +20,7 @@ The official PHP library for [VeliraPay](https://velirapay.com), the crypto paym
 - [Webhook endpoints](#webhook-endpoints)
 - [Your account](#your-account)
 - [Lists and pagination](#lists-and-pagination)
+- [Constants](#constants)
 - [Webhooks](#webhooks)
 - [Errors](#errors)
 - [Retries and idempotency](#retries-and-idempotency)
@@ -528,6 +529,39 @@ foreach ($velirapay->charges->iterator(['status' => 'paid']) as $charge) {
     // …
 }
 ```
+
+## Constants
+
+Each set of values the API uses is an enum in `VeliraPay\Enums`, and every parameter that takes one of these values takes its case as well as the string:
+
+| Enum | Values |
+| --- | --- |
+| `Asset` | The coins, each on its network, such as `Asset::BTC` or `Asset::USDT_TRON` ([Supported coins](#supported-coins)) |
+| `Currency` | `USD`, `EUR`, `GBP`, `CAD`, `AUD`, `CHF` and `TRY` |
+| `ChargeStatus`, `InvoiceStatus`, `PaymentLinkStatus`, `PayoutStatus` | The states of charges, invoices, payment links and payouts |
+| `PricingType` | `fixed` and `open` |
+| `EventType` | The events webhooks and the events API report, such as `EventType::ChargePaid` |
+| `WebhookDeliveryStatus` | `pending`, `succeeded` and `failed` |
+| `MemberRole` | `owner`, `admin`, `finance`, `support` and `viewer`; `MemberRole::assignable()` gives the four an invitation or a role change can give |
+| `AddressNetwork` | The network families of payout addresses, such as `AddressNetwork::Bitcoin` or `AddressNetwork::Evm` |
+| `ApiKeyPermission` | What a restricted API key may do, such as `ApiKeyPermission::ChargesRead` |
+| `ActivityAction` | What the activity log records, such as `ActivityAction::ApiKeyCreated` |
+| `CheckoutAppearance`, `CheckoutLocale` | `auto`, `light` and `dark`, and the checkout's languages, such as `CheckoutLocale::French` |
+| `PlanName`, `AccountType` | `free` and `pro`, and `personal` and `organization` |
+| `BusinessType`, `Industry`, `MonthlyVolume` | The business details of an account |
+| `Mode` | `live` and `test` |
+
+```php
+use VeliraPay\Enums\Currency;
+use VeliraPay\Enums\MemberRole;
+
+$velirapay->assets->list(['currency' => Currency::EUR]);
+$velirapay->invitations->create(['email' => 'grace@example.com', 'role' => MemberRole::Finance]);
+```
+
+`charges->create()` is typed to take its `currency` as a string, so pass `Currency::EUR->value` there.
+
+What the API sends back stays a string, so a value it adds after this version of the library still reads. Compare with the case's value, as in `$member->role === MemberRole::Admin->value`, or use the readers that give the case or `null`, such as `$supportedAsset->asset()` and `$payoutAddress->addressNetwork()`.
 
 ## Webhooks
 

@@ -41,7 +41,7 @@ final class Charge extends ApiResource
         public readonly ?string $description,
         /** What the customer owes, in fiat. */
         public readonly string $fiatAmount,
-        /** The fiat currency, such as "USD". */
+        /** One of the Currency values: the fiat currency, such as "USD". */
         public readonly string $fiatCurrency,
         /** One of the Asset values: the coin and network paid with, such as "BTC" or "USDT". */
         public readonly string $asset,

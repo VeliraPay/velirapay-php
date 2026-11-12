@@ -16,7 +16,7 @@ final class Overview extends ApiResource
      */
     public function __construct(
         array $attributes,
-        /** The currency the amounts are in. */
+        /** The Currency value the amounts are in. */
         public readonly string $currency,
         /** What was paid in the period. */
         public readonly string $volume,

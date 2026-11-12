@@ -22,7 +22,7 @@ final class Invitation extends ApiResource
         public readonly string $id,
         /** Where it was sent. */
         public readonly string $email,
-        /** The role it gives once accepted: "admin", "finance", "support" or "viewer". */
+        /** The MemberRole value it gives once accepted: "admin", "finance", "support" or "viewer". */
         public readonly string $role,
         /** The name of the member who sent it. */
         public readonly ?string $invitedBy,

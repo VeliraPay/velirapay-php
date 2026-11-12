@@ -37,7 +37,7 @@ final class Invoice extends ApiResource
         public readonly ?string $memo,
         /** The total due. */
         public readonly string $amount,
-        /** The fiat currency, such as "USD". */
+        /** One of the Currency values: the fiat currency, such as "USD". */
         public readonly string $currency,
         /** The lines of an itemised invoice. */
         public readonly array $items,

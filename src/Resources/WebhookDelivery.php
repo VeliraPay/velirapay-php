@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace VeliraPay\Resources;
 
 use DateTimeImmutable;
+use VeliraPay\Enums\WebhookDeliveryStatus;
 
 /**
  * One event sent to a webhook endpoint, and how it went. What was sent and what came back are only returned one delivery at a time, by retrieveDelivery().
@@ -28,7 +29,7 @@ final class WebhookDelivery extends ApiResource
         public readonly ?string $eventId,
         /** Whether it was a test event, which describes no real payment. */
         public readonly bool $test,
-        /** "pending", "succeeded" or "failed". */
+        /** One of the WebhookDeliveryStatus values: "pending", "succeeded" or "failed". */
         public readonly string $status,
         /** How many times it was sent. */
         public readonly int $attempts,
@@ -86,6 +87,6 @@ final class WebhookDelivery extends ApiResource
      */
     public function succeeded(): bool
     {
-        return $this->status === 'succeeded';
+        return $this->status === WebhookDeliveryStatus::Succeeded->value;
     }
 }

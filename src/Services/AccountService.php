@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace VeliraPay\Services;
 
+use VeliraPay\Enums\CheckoutLocale;
+use VeliraPay\Enums\Currency;
 use VeliraPay\Exceptions\ApiException;
 use VeliraPay\Exceptions\ConnectionException;
 use VeliraPay\Http\ApiResponse;
@@ -41,7 +43,7 @@ final class AccountService extends Service
     /**
      * Change the default currency, the payment tolerances, the checkout language or invoice reminders. Needs payment_settings:write.
      *
-     * @param  array{default_currency?: string, underpayment_tolerance?: string|int|float, overpayment_threshold?: string|int|float, checkout_locale?: string|null, invoice_reminders?: bool}  $params
+     * @param  array{default_currency?: Currency|string, underpayment_tolerance?: string|int|float, overpayment_threshold?: string|int|float, checkout_locale?: CheckoutLocale|string|null, invoice_reminders?: bool}  $params
      *
      * @throws ApiException
      * @throws ConnectionException

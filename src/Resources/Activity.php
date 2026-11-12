@@ -21,7 +21,7 @@ final class Activity extends ApiResource
         array $attributes,
         /** The entry's id. */
         public readonly string $id,
-        /** What was done, such as "api_key.created". */
+        /** What was done, one of the ActivityAction values, such as "api_key.created". */
         public readonly string $action,
         /** What was done, in words. */
         public readonly string $description,

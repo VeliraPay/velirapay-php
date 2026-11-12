@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace VeliraPay\Services;
 
 use Generator;
+use VeliraPay\Enums\MemberRole;
 use VeliraPay\Exceptions\ApiException;
 use VeliraPay\Exceptions\ConnectionException;
 use VeliraPay\Page;
@@ -46,7 +47,7 @@ final class InvitationService extends Service
     /**
      * Email someone an invitation to join as an "admin", "finance", "support" or "viewer", in the name of whoever made the API key.
      *
-     * @param  array{email: string, role: string}  $params
+     * @param  array{email: string, role: MemberRole|string}  $params
      *
      * @throws ApiException
      * @throws ConnectionException

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace VeliraPay\Services;
 
 use Generator;
+use VeliraPay\Enums\MemberRole;
 use VeliraPay\Exceptions\ApiException;
 use VeliraPay\Exceptions\ConnectionException;
 use VeliraPay\Page;
@@ -44,9 +45,9 @@ final class MemberService extends Service
     }
 
     /**
-     * Make a member an admin or a member. An owner is never changed this way.
+     * Give a member the role admin, finance, support or viewer, on a key an owner made. An owner is never changed this way.
      *
-     * @param  array{role: string}  $params
+     * @param  array{role: MemberRole|string}  $params
      *
      * @throws ApiException
      * @throws ConnectionException

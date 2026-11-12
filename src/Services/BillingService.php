@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace VeliraPay\Services;
 
+use VeliraPay\Enums\Asset;
 use VeliraPay\Exceptions\ApiException;
 use VeliraPay\Exceptions\ConnectionException;
 use VeliraPay\Resources\ProPayment;
@@ -16,7 +17,7 @@ final class BillingService extends Service
     /**
      * Start paying for a month of Pro in a coin, answering with the checkout to pay it on, or with the payment already waiting in that coin.
      *
-     * @param  array{asset: string}  $params
+     * @param  array{asset: Asset|string}  $params
      *
      * @throws ApiException
      * @throws ConnectionException

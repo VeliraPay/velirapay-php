@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace VeliraPay\Resources;
 
 use DateTimeImmutable;
+use VeliraPay\Enums\AddressNetwork;
 
 /**
  * Where the account's payouts on one network go.
@@ -19,7 +20,7 @@ final class PayoutAddress extends ApiResource
      */
     public function __construct(
         array $attributes,
-        /** The network, such as "bitcoin" or "evm", which is also its id in the paths. */
+        /** One of the AddressNetwork values, such as "bitcoin" or "evm", which is also its id in the paths. */
         public readonly string $network,
         /** The network's name. */
         public readonly string $name,
@@ -51,5 +52,13 @@ final class PayoutAddress extends ApiResource
             payoutsHeldUntil: self::date($data, 'payouts_held_until'),
             updatedAt: self::date($data, 'updated_at'),
         );
+    }
+
+    /**
+     * Get the AddressNetwork case for the network, or null for one the API added after this version of the library.
+     */
+    public function addressNetwork(): ?AddressNetwork
+    {
+        return AddressNetwork::tryFrom($this->network);
     }
 }
