@@ -33,6 +33,12 @@ final class Customer extends ApiResource
         public readonly ?string $country,
         /** Anything else you passed about the customer. */
         public readonly array $metadata,
+        /** The country the checkout's IP address is in, as an ISO 3166 two-letter code, or "T1" for Tor; null for a charge created through the API. */
+        public readonly ?string $ipCountry = null,
+        /** The number of the network (autonomous system) the IP address belongs to, such as 24940; null when it is not known. */
+        public readonly ?int $ipAsn = null,
+        /** Who runs that network, such as "Hetzner Online GmbH"; a customer on a hosting company's network is often a bot or someone hiding behind a server. */
+        public readonly ?string $ipNetwork = null,
     ) {
         parent::__construct($attributes);
     }
@@ -54,6 +60,9 @@ final class Customer extends ApiResource
             phone: self::nullableString($data, 'phone'),
             country: self::nullableString($data, 'country'),
             metadata: self::map($data, 'metadata'),
+            ipCountry: self::nullableString($data, 'ip_country'),
+            ipAsn: self::nullableInt($data, 'ip_asn'),
+            ipNetwork: self::nullableString($data, 'ip_network'),
         );
     }
 }

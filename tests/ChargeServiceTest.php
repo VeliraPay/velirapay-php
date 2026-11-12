@@ -121,6 +121,9 @@ final class ChargeServiceTest extends TestCase
         $this->assertSame('ada@example.com', $charge->customer->email);
         $this->assertSame('Ada Lovelace', $charge->customer->name);
         $this->assertSame('203.0.113.7', $charge->customer->ipAddress);
+        $this->assertSame('DE', $charge->customer->ipCountry);
+        $this->assertSame(24940, $charge->customer->ipAsn);
+        $this->assertSame('Hetzner Online GmbH', $charge->customer->ipNetwork);
         $this->assertStringStartsWith('Mozilla/5.0 (Macintosh;', (string) $charge->customer->userAgent);
         $this->assertSame('cus_1042', $charge->customer->reference);
         $this->assertSame('+44 20 7946 0958', $charge->customer->phone);
@@ -202,7 +205,22 @@ final class ChargeServiceTest extends TestCase
         $this->assertSame('ada@example.com', $charge->customer->email);
         $this->assertSame('Ada Lovelace', $charge->customer->name);
         $this->assertNull($charge->customer->ipAddress);
+        $this->assertNull($charge->customer->ipCountry);
+        $this->assertNull($charge->customer->ipAsn);
+        $this->assertNull($charge->customer->ipNetwork);
         $this->assertSame([], $charge->customer->metadata);
+    }
+
+    public function test_a_customer_sent_without_the_country_and_network_of_its_ip_address_reads_them_as_null(): void
+    {
+        $this->http->json(['data' => ['customer' => ['email' => 'ada@example.com', 'ip_address' => '203.0.113.7', 'user_agent' => 'Mozilla/5.0']] + self::fixture('charge')]);
+
+        $customer = $this->client()->charges->retrieve('k3v9x2m7q8wz')->customer;
+
+        $this->assertSame('203.0.113.7', $customer->ipAddress);
+        $this->assertNull($customer->ipCountry);
+        $this->assertNull($customer->ipAsn);
+        $this->assertNull($customer->ipNetwork);
     }
 
     public function test_a_charge_built_without_a_customer_takes_it_from_the_older_fields(): void
@@ -241,6 +259,9 @@ final class ChargeServiceTest extends TestCase
         $this->assertSame('ada@example.com', $charge->customer->email);
         $this->assertSame('Ada Lovelace', $charge->customer->name);
         $this->assertNull($charge->customer->ipAddress);
+        $this->assertNull($charge->customer->ipCountry);
+        $this->assertNull($charge->customer->ipAsn);
+        $this->assertNull($charge->customer->ipNetwork);
     }
 
     public function test_attributes_the_library_does_not_know_are_kept(): void

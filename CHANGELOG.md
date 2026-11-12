@@ -2,6 +2,10 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+- `$charge->customer->ipCountry`, `ipAsn` and `ipNetwork`, which the API's answers and webhooks now carry, to help spot bots and people hiding behind servers: the country the checkout placed the IP address in (an ISO 3166 two-letter code, or `T1` for Tor; null for a charge created through the API), and the number and owner of the network it belongs to, such as `24940` and `"Hetzner Online GmbH"`. Each is null when it is not known, or in a payload from before VeliraPay sent it. They come last in `Customer`'s constructor, with null defaults.
+
 ## 0.6.8 - 2026-11-12
 
 - `invoices->create()` takes `success_url` and `cancel_url`, public https:// addresses the invoice's page and its charges' checkout offer the customer a way back to: a button once they have paid, and a link while it is open. `$invoice->successUrl` and `$invoice->cancelUrl` read them back, and are `null` in webhooks, which leave them out.

@@ -222,6 +222,16 @@ $charge->customer->metadata;   // ['orders' => 7]
 
 Every field is optional, and any other key is refused with a `ValidationException`. The older `customer_email` parameter still works.
 
+VeliraPay also says where the IP address is and whose network it is on, to help you spot bots and people hiding behind servers: a customer on a hosting company's network, rather than an internet provider's, often is one.
+
+```php
+$charge->customer->ipNetwork;  // "Hetzner Online GmbH", who runs the IP address's network
+$charge->customer->ipAsn;      // 24940, that network's number (autonomous system)
+$charge->customer->ipCountry;  // "DE", or "T1" for Tor
+```
+
+`ipNetwork` and `ipAsn` come with any charge that has an IP address. `ipCountry` is recorded when the customer starts paying on a payment link or an invoice, and is `null` for a charge created through the API; one that differs from the `country` the customer gave is worth a second look. Each is `null` when it is not known, and webhooks carry all three.
+
 ## Payment links
 
 A payment link is one reusable public checkout page, for a fixed price or one the customer chooses, opened by many customers who each pick their own coin. Create it once and share it. To charge one customer, [create a charge](#charges) instead.

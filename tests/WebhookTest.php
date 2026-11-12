@@ -41,6 +41,9 @@ final class WebhookTest extends TestCase
         $this->assertSame(2, $charge->transactions[0]->confirmations);
         $this->assertSame(2, $charge->transactions[0]->requiredConfirmations);
         $this->assertSame('203.0.113.7', $charge->customer->ipAddress);
+        $this->assertSame('DE', $charge->customer->ipCountry);
+        $this->assertSame(24940, $charge->customer->ipAsn);
+        $this->assertSame('Hetzner Online GmbH', $charge->customer->ipNetwork);
         $this->assertSame('ada@example.com', $charge->customer->email);
         $this->assertSame(['order_id' => '1042'], $charge->metadata);
         $this->assertSame([], $charge->refunds);
@@ -87,6 +90,19 @@ final class WebhookTest extends TestCase
         $this->assertFalse($transaction->credited);
         $this->assertStringStartsWith('https://mempool.space/tx/', (string) $transaction->explorerUrl);
         $this->assertEquals(new DateTimeImmutable('2026-09-20T09:58:12Z'), $transaction->seenAt);
+    }
+
+    public function test_a_delivery_without_the_country_and_network_of_the_ip_address_reads_them_as_null(): void
+    {
+        $payload = '{"id":"5f0c6f5e-8d1b-4a53-9a57-3c2b1d0e9f87","event_id":"9b1f7a3e-2c4d-4e8f-a6b0-1d2c3e4f5a6b","event":"charge.paid","mode":"live","created_at":"2026-09-20T10:05:42.000000Z","data":{"charge":{"code":"k3v9x2m7q8wz","status":"paid","customer":{"email":"ada@example.com","name":null,"ip_address":"203.0.113.7","user_agent":"Mozilla/5.0","reference":null,"phone":null,"country":null,"metadata":[]}}}}';
+
+        $customer = Webhook::constructEvent($payload, Webhook::signatureHeader($payload, self::SECRET), self::SECRET)->charge?->customer;
+
+        $this->assertNotNull($customer);
+        $this->assertSame('203.0.113.7', $customer->ipAddress);
+        $this->assertNull($customer->ipCountry);
+        $this->assertNull($customer->ipAsn);
+        $this->assertNull($customer->ipNetwork);
     }
 
     public function test_a_payout_delivery_carries_the_charge_and_its_payout(): void
