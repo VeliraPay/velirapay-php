@@ -28,7 +28,7 @@ final class ChargeService extends Service
      */
     public function create(array $params, ?string $idempotencyKey = null): Charge
     {
-        return Charge::fromArray($this->request('POST', '/v1/charges', $params, $idempotencyKey));
+        return Charge::fromArray($this->request('POST', '/v1/charges', self::decimals($params, 'amount'), $idempotencyKey));
     }
 
     /**
@@ -92,7 +92,7 @@ final class ChargeService extends Service
      */
     public function recordRefund(string $id, array $params, ?string $idempotencyKey = null): Charge
     {
-        return Charge::fromArray($this->request('POST', self::path('/v1/charges/%s/refunds', $id), $params, $idempotencyKey));
+        return Charge::fromArray($this->request('POST', self::path('/v1/charges/%s/refunds', $id), self::decimals($params, 'amount'), $idempotencyKey));
     }
 
     /**
@@ -128,6 +128,6 @@ final class ChargeService extends Service
      */
     public function simulate(string $id, array $params = [], ?string $idempotencyKey = null): Charge
     {
-        return Charge::fromArray($this->request('POST', self::path('/v1/charges/%s/simulate', $id), $params === [] ? null : $params, $idempotencyKey));
+        return Charge::fromArray($this->request('POST', self::path('/v1/charges/%s/simulate', $id), $params === [] ? null : self::decimals($params, 'amount'), $idempotencyKey));
     }
 }

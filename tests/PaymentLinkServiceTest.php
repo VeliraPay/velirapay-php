@@ -57,6 +57,22 @@ final class PaymentLinkServiceTest extends TestCase
         $this->assertSame('2026-12-31T22:59:59+00:00', self::body($this->http->lastRequest())['expires_at']);
     }
 
+    public function test_a_payment_links_float_amounts_are_sent_as_plain_decimal_strings(): void
+    {
+        $this->http->json(['data' => self::fixture('payment_link')], 201)->json(['data' => self::fixture('payment_link')]);
+
+        $this->client()->paymentLinks->create(['title' => 'Tip jar', 'pricing_type' => PricingType::Open, 'currency' => 'USD', 'suggested_amounts' => [5.0, '10.00', 25.5], 'min_amount' => 0.5, 'max_amount' => 500]);
+
+        $body = self::body($this->http->lastRequest());
+        $this->assertSame(['5', '10.00', '25.5'], $body['suggested_amounts']);
+        $this->assertSame('0.5', $body['min_amount']);
+        $this->assertSame(500, $body['max_amount']);
+
+        $this->client()->paymentLinks->update('p4n8r2t6y1ua', ['pricing_type' => PricingType::Fixed, 'amount' => 19.99]);
+
+        $this->assertSame('19.99', self::body($this->http->lastRequest())['amount']);
+    }
+
     public function test_a_payment_link_is_read_into_typed_properties(): void
     {
         $this->http->json(['data' => self::fixture('payment_link')]);

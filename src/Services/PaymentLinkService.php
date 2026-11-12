@@ -29,7 +29,7 @@ final class PaymentLinkService extends Service
      */
     public function create(array $params, ?string $idempotencyKey = null): PaymentLink
     {
-        return PaymentLink::fromArray($this->request('POST', '/v1/payment-links', $params, $idempotencyKey));
+        return PaymentLink::fromArray($this->request('POST', '/v1/payment-links', self::decimals($params, 'amount', 'suggested_amounts', 'min_amount', 'max_amount'), $idempotencyKey));
     }
 
     /**
@@ -53,7 +53,7 @@ final class PaymentLinkService extends Service
      */
     public function update(string $id, array $params, ?string $idempotencyKey = null): PaymentLink
     {
-        return PaymentLink::fromArray($this->request('PATCH', self::path('/v1/payment-links/%s', $id), $params, $idempotencyKey));
+        return PaymentLink::fromArray($this->request('PATCH', self::path('/v1/payment-links/%s', $id), self::decimals($params, 'amount', 'suggested_amounts', 'min_amount', 'max_amount'), $idempotencyKey));
     }
 
     /**

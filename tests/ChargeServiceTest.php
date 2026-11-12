@@ -6,6 +6,7 @@ namespace VeliraPay\Tests;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use PHPUnit\Framework\Attributes\DataProvider;
 use VeliraPay\Enums\Asset;
 use VeliraPay\Enums\ChargeStatus;
 use VeliraPay\Exceptions\InvalidArgumentException;
@@ -319,6 +320,56 @@ final class ChargeServiceTest extends TestCase
         $this->assertSame('', (string) $request->getBody());
         $this->assertFalse($request->hasHeader('Content-Type'));
         $this->assertTrue($charge->isCanceled());
+    }
+
+    /**
+     * @return iterable<string, array{float, string}>
+     */
+    public static function floatAmounts(): iterable
+    {
+        yield 'a small coin amount' => [0.00005, '0.00005'];
+        yield 'a tenth' => [0.1, '0.1'];
+        yield 'a satoshi-sized amount' => [1.0e-7, '0.0000001'];
+        yield 'a whole number' => [25.0, '25'];
+        yield 'below a microcoin' => [1.5e-7, '0.00000015'];
+        yield 'a large amount' => [1.0e20, '100000000000000000000'];
+    }
+
+    #[DataProvider('floatAmounts')]
+    public function test_float_amounts_are_sent_as_plain_decimal_strings(float $amount, string $sent): void
+    {
+        $this->http->json(['data' => self::fixture('charge')], 201)->json(['data' => self::fixture('charge')]);
+
+        $this->client()->charges->recordRefund('k3v9x2m7q8wz', ['amount' => $amount]);
+        $this->client()->charges->simulate('k3v9x2m7q8wz', ['amount' => $amount]);
+
+        [$refund, $simulation] = $this->http->requests;
+        $this->assertSame($sent, self::body($refund)['amount']);
+        $this->assertSame($sent, self::body($simulation)['amount']);
+    }
+
+    public function test_a_charges_float_amount_is_sent_as_a_string_and_its_metadata_as_it_is(): void
+    {
+        $this->http->json(['data' => self::fixture('charge')], 201);
+
+        $this->client()->charges->create(['asset' => 'BTC', 'amount' => 49.9, 'currency' => 'EUR', 'metadata' => ['ratio' => 0.00005], 'customer' => ['metadata' => ['score' => 0.5]]]);
+
+        $body = self::body($this->http->lastRequest());
+        $this->assertSame('49.9', $body['amount']);
+        $this->assertSame(['ratio' => 5.0E-5], $body['metadata']);
+        $this->assertSame(['metadata' => ['score' => 0.5]], $body['customer']);
+        $this->assertStringContainsString('"metadata":{"ratio":5.0e-5}', (string) $this->http->lastRequest()->getBody());
+    }
+
+    public function test_an_amount_that_is_not_a_finite_number_is_refused_before_a_request_is_sent(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        try {
+            $this->client()->charges->recordRefund('k3v9x2m7q8wz', ['amount' => INF]);
+        } finally {
+            $this->assertSame([], $this->http->requests);
+        }
     }
 
     public function test_a_refund_is_recorded(): void

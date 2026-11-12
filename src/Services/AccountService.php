@@ -48,7 +48,7 @@ final class AccountService extends Service
      */
     public function updatePaymentSettings(array $params, ?string $idempotencyKey = null): Account
     {
-        return self::account($this->respond('PATCH', '/v1/payment-settings', $params, $idempotencyKey));
+        return self::account($this->respond('PATCH', '/v1/payment-settings', self::decimals($params, 'underpayment_tolerance', 'overpayment_threshold'), $idempotencyKey));
     }
 
     /**

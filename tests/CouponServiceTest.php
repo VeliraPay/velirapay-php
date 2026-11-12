@@ -52,6 +52,15 @@ final class CouponServiceTest extends TestCase
         $this->assertSame('2027-01-15T14:00:00+00:00', self::body($this->http->lastRequest())['expires_at']);
     }
 
+    public function test_a_coupons_float_amounts_are_sent_as_plain_decimal_strings(): void
+    {
+        $this->http->json(['data' => self::fixture('coupon')], 201);
+
+        $this->client()->coupons->create(['code' => 'TENOFF', 'amount_off' => 10.5, 'currency' => 'EUR', 'min_amount' => 20.0]);
+
+        $this->assertSame(['code' => 'TENOFF', 'amount_off' => '10.5', 'currency' => 'EUR', 'min_amount' => '20'], self::body($this->http->lastRequest()));
+    }
+
     public function test_a_coupon_is_read_into_typed_properties(): void
     {
         $this->http->json(['data' => self::fixture('coupon')]);

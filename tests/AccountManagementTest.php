@@ -39,6 +39,17 @@ final class AccountManagementTest extends TestCase
         $this->assertSame('live', $settings->mode);
     }
 
+    public function test_float_tolerances_are_sent_as_plain_decimal_strings(): void
+    {
+        $account = self::fixture('account')['data'];
+        $this->assertIsArray($account);
+        $this->http->json(['data' => $account, 'meta' => ['mode' => 'live', 'accepted_assets' => []]]);
+
+        $this->client()->account->updatePaymentSettings(['underpayment_tolerance' => 1.5, 'overpayment_threshold' => 2]);
+
+        $this->assertSame(['underpayment_tolerance' => '1.5', 'overpayment_threshold' => 2], self::body($this->http->lastRequest()));
+    }
+
     public function test_the_overview_is_retrieved(): void
     {
         $this->http->json(['data' => ['object' => 'overview', 'currency' => 'USD', 'volume' => '1250.00', 'volume_change_percent' => 12.5, 'sent_volume' => '1100.00', 'paid_charges' => 12, 'conversion_rate_percent' => 60, 'pending_charges' => 2, 'active_payment_links' => 3, 'open_invoices' => 1, 'overdue_invoices' => 0, 'funnel' => ['started' => 20]]]);

@@ -35,6 +35,24 @@ final class InvoiceServiceTest extends TestCase
         $this->assertSame('w7c2h5j9d3kx', $invoice->id);
     }
 
+    public function test_an_invoices_float_amounts_are_sent_as_plain_decimal_strings(): void
+    {
+        $this->http->json(['data' => self::fixture('invoice')], 201)->json(['data' => self::fixture('invoice')], 201);
+
+        $this->client()->invoices->create([
+            'customer_name' => 'Grace Hopper',
+            'customer_email' => 'grace@example.com',
+            'currency' => 'USD',
+            'items' => [['description' => 'Hosting', 'quantity' => 2.5, 'unit_amount' => 99.99]],
+        ]);
+
+        $this->assertSame([['description' => 'Hosting', 'quantity' => '2.5', 'unit_amount' => '99.99']], self::body($this->http->lastRequest())['items']);
+
+        $this->client()->invoices->create(['customer_name' => 'Grace Hopper', 'customer_email' => 'grace@example.com', 'currency' => 'USD', 'amount' => 350.0]);
+
+        $this->assertSame('350', self::body($this->http->lastRequest())['amount']);
+    }
+
     public function test_an_invoice_is_read_into_typed_properties(): void
     {
         $this->http->json(['data' => self::fixture('invoice')]);

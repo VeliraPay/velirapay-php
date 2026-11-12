@@ -68,7 +68,7 @@ header('Location: '.$charge->checkoutUrl);
 
 That is the way to charge a customer: create a charge with what you already know, and send them to its checkout page. They pay there, and VeliraPay tells your server about it with a [webhook](#webhooks).
 
-Amounts are always strings, such as `'49.90'`, never floats, so no precision is lost. Use [bcmath](https://www.php.net/manual/en/book.bc.php) or a money library to do arithmetic on them.
+Amounts are always strings, such as `'49.90'`, never floats, so no precision is lost. Use [bcmath](https://www.php.net/manual/en/book.bc.php) or a money library to do arithmetic on them. An amount you pass as a float is sent as a plain decimal string, `0.00005` as `'0.00005'`, since the API refuses one written with an exponent.
 
 Dates can be given as strings or as `DateTimeInterface` objects. A date and time is sent as the same moment in UTC, whatever its time zone, and a date the API reads as a day, an invoice's `due_at` or the activity log's `from` and `to`, as the day it falls on where it is.
 

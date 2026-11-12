@@ -31,7 +31,7 @@ final class InvoiceService extends Service
             $params['due_at'] = $params['due_at']->format('Y-m-d');
         }
 
-        return Invoice::fromArray($this->request('POST', '/v1/invoices', $params, $idempotencyKey));
+        return Invoice::fromArray($this->request('POST', '/v1/invoices', self::decimals($params, 'amount', 'items'), $idempotencyKey));
     }
 
     /**

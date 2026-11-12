@@ -26,7 +26,7 @@ final class CouponService extends Service
      */
     public function create(array $params, ?string $idempotencyKey = null): Coupon
     {
-        return Coupon::fromArray($this->request('POST', '/v1/coupons', $params, $idempotencyKey));
+        return Coupon::fromArray($this->request('POST', '/v1/coupons', self::decimals($params, 'percent_off', 'amount_off', 'min_amount'), $idempotencyKey));
     }
 
     /**
