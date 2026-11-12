@@ -12,6 +12,7 @@ namespace VeliraPay\Enums;
 enum Asset: string
 {
     case BTC = 'BTC';
+    case BTC_LIGHTNING = 'BTC_LIGHTNING';
     case LTC = 'LTC';
     case DOGE = 'DOGE';
     case BCH = 'BCH';
@@ -30,4 +31,7 @@ enum Asset: string
     case USDT_POLYGON = 'USDT_POLYGON';
     case USDT_ARBITRUM = 'USDT_ARBITRUM';
     case USDC_ARBITRUM = 'USDC_ARBITRUM';
+    case ETH_BASE = 'ETH_BASE';
+    case ETH_ARBITRUM = 'ETH_ARBITRUM';
+    case POL = 'POL';
 }

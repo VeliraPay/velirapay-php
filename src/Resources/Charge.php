@@ -59,7 +59,7 @@ final class Charge extends ApiResource
         public readonly array $refunds,
         /** Fiat per one unit of the coin, locked when the charge was created. */
         public readonly string $exchangeRate,
-        /** The address the customer pays into. */
+        /** The address the customer pays into, or the payment hash of the Lightning invoice for BTC_LIGHTNING. */
         public readonly string $depositAddress,
         /** The transfers seen into the deposit address. */
         public readonly array $transactions,
@@ -94,6 +94,10 @@ final class Charge extends ApiResource
         public readonly ?string $cancelUrl = null,
         /** What the customer is told once they have paid; absent from webhooks. */
         public readonly ?string $successMessage = null,
+        /** What of assetAmount the customer pays on top of the price for the network, which VeliraPay keeps; null for a coin without one. */
+        public readonly ?string $networkSurcharge = null,
+        /** The Lightning invoice (BOLT11) the customer pays, for BTC_LIGHTNING; null for every other coin. */
+        public readonly ?string $paymentRequest = null,
     ) {
         parent::__construct($attributes);
 
@@ -151,6 +155,8 @@ final class Charge extends ApiResource
             successUrl: self::nullableString($data, 'success_url'),
             cancelUrl: self::nullableString($data, 'cancel_url'),
             successMessage: self::nullableString($data, 'success_message'),
+            networkSurcharge: self::nullableString($data, 'network_surcharge'),
+            paymentRequest: self::nullableString($data, 'payment_request'),
         );
     }
 

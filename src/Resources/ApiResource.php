@@ -120,6 +120,18 @@ abstract class ApiResource implements JsonSerializable
     }
 
     /**
+     * Read a number attribute that may be null.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    protected static function nullableFloat(array $data, string $key): ?float
+    {
+        $value = $data[$key] ?? null;
+
+        return is_int($value) || is_float($value) ? (float) $value : null;
+    }
+
+    /**
      * Read a timestamp or date attribute.
      *
      * @param  array<string, mixed>  $data

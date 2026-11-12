@@ -40,14 +40,38 @@ final class AccountManagementTest extends TestCase
 
     public function test_the_overview_is_retrieved(): void
     {
-        $this->http->json(['data' => ['object' => 'overview', 'currency' => 'USD', 'volume' => '1250.00', 'paid_charges' => 12, 'pending_charges' => 2, 'active_payment_links' => 3, 'open_invoices' => 1, 'overdue_invoices' => 0, 'funnel' => ['started' => 20]]]);
+        $this->http->json(['data' => ['object' => 'overview', 'currency' => 'USD', 'volume' => '1250.00', 'volume_change_percent' => 12.5, 'sent_volume' => '1100.00', 'paid_charges' => 12, 'conversion_rate_percent' => 60, 'pending_charges' => 2, 'active_payment_links' => 3, 'open_invoices' => 1, 'overdue_invoices' => 0, 'funnel' => ['started' => 20]]]);
 
         $overview = $this->client()->overview->retrieve();
 
         $this->assertSame('/v1/overview', $this->http->lastRequest()->getUri()->getPath());
         $this->assertSame('1250.00', $overview->volume);
+        $this->assertSame(12.5, $overview->volumeChangePercent);
+        $this->assertSame('1100.00', $overview->sentVolume);
         $this->assertSame(12, $overview->paidCharges);
+        $this->assertSame(60.0, $overview->conversionRatePercent);
         $this->assertSame(['started' => 20], $overview->get('funnel'));
+    }
+
+    public function test_the_overview_tells_a_zero_percentage_from_one_with_nothing_to_compare(): void
+    {
+        $this->http->json(['data' => ['object' => 'overview', 'currency' => 'USD', 'volume' => '0', 'volume_change_percent' => null, 'sent_volume' => '0', 'paid_charges' => 0, 'conversion_rate_percent' => 0]]);
+
+        $overview = $this->client()->overview->retrieve();
+
+        $this->assertNull($overview->volumeChangePercent);
+        $this->assertSame(0.0, $overview->conversionRatePercent);
+    }
+
+    public function test_an_overview_without_the_newer_figures_still_reads(): void
+    {
+        $this->http->json(['data' => ['object' => 'overview', 'currency' => 'USD', 'volume' => '1250.00', 'paid_charges' => 12]]);
+
+        $overview = $this->client()->overview->retrieve();
+
+        $this->assertNull($overview->volumeChangePercent);
+        $this->assertSame('0', $overview->sentVolume);
+        $this->assertNull($overview->conversionRatePercent);
     }
 
     public function test_payout_addresses_are_listed_set_and_removed(): void

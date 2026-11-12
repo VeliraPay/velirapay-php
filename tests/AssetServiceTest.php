@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace VeliraPay\Tests;
 
 use VeliraPay\Enums\Asset;
+use VeliraPay\Resources\SupportedAsset;
 
 final class AssetServiceTest extends TestCase
 {
@@ -60,6 +61,7 @@ final class AssetServiceTest extends TestCase
         $this->assertSame(8, $bitcoin->decimals);
         $this->assertSame(2, $bitcoin->requiredConfirmations);
         $this->assertSame('about 20 minutes', $bitcoin->confirmationWait);
+        $this->assertNull($bitcoin->networkSurcharge);
 
         $this->assertSame('Tether USD', $tether->name);
         $this->assertSame('USDT', $tether->ticker);
@@ -72,5 +74,29 @@ final class AssetServiceTest extends TestCase
 
         $this->assertNull($unknown->asset());
         $this->assertNull($unknown->exchangeRate);
+    }
+
+    public function test_a_coin_says_the_network_surcharge_a_charge_in_it_asks_on_top_of_the_price(): void
+    {
+        $this->http->json([
+            'data' => [[
+                'id' => 'USDT_TRON', 'object' => 'asset', 'name' => 'Tether USD', 'ticker' => 'USDT', 'network' => 'Tron (TRC-20)',
+                'contract_address' => 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t', 'decimals' => 6, 'required_confirmations' => 19, 'confirmation_wait' => 'about a minute',
+                'accepted' => true, 'currency' => 'USD', 'exchange_rate' => '1', 'minimum_amount' => null, 'minimum_price' => '0.5', 'network_surcharge' => '2.5',
+            ]],
+            'meta' => ['mode' => 'live', 'currencies' => ['USD', 'EUR']],
+        ]);
+
+        $tether = $this->client()->assets->list()->data[0];
+
+        $this->assertSame(Asset::USDT_TRON, $tether->asset());
+        $this->assertSame('2.5', $tether->networkSurcharge);
+    }
+
+    public function test_lightning_and_the_own_coins_of_base_arbitrum_and_polygon_are_known(): void
+    {
+        foreach ([Asset::BTC_LIGHTNING, Asset::ETH_BASE, Asset::ETH_ARBITRUM, Asset::POL] as $asset) {
+            $this->assertSame($asset, SupportedAsset::fromArray(['id' => $asset->value])->asset());
+        }
     }
 }

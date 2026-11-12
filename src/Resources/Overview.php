@@ -30,6 +30,12 @@ final class Overview extends ApiResource
         public readonly int $openInvoices,
         /** How many open invoices are past due. */
         public readonly int $overdueInvoices,
+        /** How the volume changed against the 30 days before, in percent; null when nothing was paid then. */
+        public readonly ?float $volumeChangePercent = null,
+        /** What the payouts confirmed in the period came to, at their charges' locked rates. */
+        public readonly string $sentVolume = '0',
+        /** Of the period's charges that were paid, expired or canceled, the share paid, in percent; null when there were none. */
+        public readonly ?float $conversionRatePercent = null,
     ) {
         parent::__construct($attributes);
     }
@@ -50,6 +56,9 @@ final class Overview extends ApiResource
             activePaymentLinks: self::int($data, 'active_payment_links'),
             openInvoices: self::int($data, 'open_invoices'),
             overdueInvoices: self::int($data, 'overdue_invoices'),
+            volumeChangePercent: self::nullableFloat($data, 'volume_change_percent'),
+            sentVolume: self::string($data, 'sent_volume', '0'),
+            conversionRatePercent: self::nullableFloat($data, 'conversion_rate_percent'),
         );
     }
 }

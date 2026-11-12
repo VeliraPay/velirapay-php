@@ -44,6 +44,8 @@ final class SupportedAsset extends ApiResource
         public readonly ?string $minimumAmount,
         /** The lowest price a charge in it can have right now, in that currency, or null while a coin with a minimum has no rate. */
         public readonly ?string $minimumPrice,
+        /** What a charge in it asks the customer for on top of the price, in the coin, for the network; null for a coin without one. */
+        public readonly ?string $networkSurcharge = null,
     ) {
         parent::__construct($attributes);
     }
@@ -70,6 +72,7 @@ final class SupportedAsset extends ApiResource
             exchangeRate: self::nullableString($data, 'exchange_rate'),
             minimumAmount: self::nullableString($data, 'minimum_amount'),
             minimumPrice: self::nullableString($data, 'minimum_price'),
+            networkSurcharge: self::nullableString($data, 'network_surcharge'),
         );
     }
 

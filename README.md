@@ -98,10 +98,13 @@ foreach ($velirapay->assets->list(['currency' => 'EUR']) as $asset) {
     $asset->minimumPrice;      // "8.71", the lowest price in EUR right now
     $asset->exchangeRate;      // "0.8709"
     $asset->confirmationWait;  // "about a minute"
+    $asset->networkSurcharge;  // null, or what a charge in it asks on top of the price, in the coin
 }
 ```
 
 USDT and USDC on Ethereum start at 10 of the token, because paying one out costs enough in gas that a smaller payment would leave you with little. A minimum is in the coin, so `minimumPrice` moves a little with the market: leave some room. Below it, `charges->create()` throws a `ValidationException` on `asset`.
+
+A coin with a `networkSurcharge`, such as USDT on Tron, asks the customer for that much more than the price, to pay for passing the payment on, so tell them before they choose it. VeliraPay keeps it: it is not part of your payout, and a refund cannot include it. A charge in such a coin counts it in `assetAmount` and gives it again as `$charge->networkSurcharge`.
 
 Without `currency`, prices are in your account's default currency. The list is not paged.
 
@@ -459,7 +462,10 @@ $velirapay->account->updatePaymentSettings(['underpayment_tolerance' => '2', 'in
 ```php
 $overview = $velirapay->overview->retrieve(); // the dashboard's last 30 days; needs overview:read
 $overview->volume;                             // in $overview->currency
+$overview->volumeChangePercent;                // against the 30 days before; null when nothing was paid then
+$overview->sentVolume;                         // what the payouts confirmed in the period came to
 $overview->paidCharges;
+$overview->conversionRatePercent;              // the share of paid, expired and canceled charges paid; null when none
 $overview->get('attention');                   // what needs a person now
 
 foreach ($velirapay->activity->list(['action' => 'sensitive']) as $entry) { // needs activity:read

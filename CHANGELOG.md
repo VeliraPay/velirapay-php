@@ -2,6 +2,14 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+- `Asset::BTC_LIGHTNING`, `Asset::ETH_BASE`, `Asset::ETH_ARBITRUM` and `Asset::POL`, which the API defines. A coin in the enum is not necessarily on offer: `assets->list()` and `$account->acceptedAssets` say which can be paid right now.
+- `$charge->networkSurcharge` and `$supportedAsset->networkSurcharge`: what a coin such as USDT on Tron asks the customer for on top of the price, for the network, which VeliraPay keeps. A charge counts it in `assetAmount`. It is null for a coin without one.
+- `$charge->paymentRequest`: the Lightning invoice (BOLT11) of a charge in `BTC_LIGHTNING`, whose `depositAddress` is then the invoice's payment hash, and null for every other coin.
+- `$overview->volumeChangePercent`, `sentVolume` and `conversionRatePercent`: how the volume changed against the 30 days before, what the payouts confirmed in the period came to, and the share of the period's paid, expired and canceled charges that were paid. Each percentage is null when there is nothing to compare.
+- The README and the docblocks of `charges->accept()` and `recordRefund()` cover late payments on underpaid charges: a top-up after the rate lock ended arrives as `charge.late_payment` once it confirms and waits to be accepted, `accept()` answers 409 while a payment to an underpaid charge is still confirming, and a refund needs the charge accepted first and never includes the network surcharge.
+
 ## 0.6.5 - 2026-11-09
 
 - The `member` role is gone: the API refuses it with a 422, and the people who had it are `finance` now, which may do everything it could. `role` stays a string, so nothing breaks.
