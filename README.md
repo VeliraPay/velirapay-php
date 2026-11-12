@@ -700,7 +700,7 @@ $velirapay->lastResponse()?->wasReplayed(); // true when the API answered from a
 What the API does with a key:
 
 - Successful (2xx) responses are replayed for 24 hours to requests repeating the key. A request that failed stores nothing, so repeating it runs it again.
-- An answer that carries a new API key or webhook signing secret is never stored. Creating a key or endpoint, or rotating an endpoint's secret, succeeds once; repeating its idempotency key throws a `ConflictException` saying the request already succeeded. If the first answer was lost, list the created objects and recover through revoking the key or rotating the endpoint's secret, instead of blindly repeating with a new idempotency key.
+- An answer that carries a new API key or webhook signing secret is never stored. Creating a key or endpoint, or rotating an endpoint's secret, succeeds once; repeating its idempotency key throws a `ConflictException` saying the request already succeeded, whose `wasReplayed()` is `true`. The library repeats such a request itself when its answer is lost, so that is how you learn it went through: the key or endpoint was created, or the secret rotated, but the secret is gone. List the keys or endpoints, revoke that key or rotate that endpoint's secret, and try again under a new idempotency key, rather than blindly repeating the request.
 - A key is at most 255 characters; a longer one is refused with a 400.
 - A key covers one account, one mode, one HTTP method and one path. Every API key of that account and mode shares it, so two servers using different API keys still create one charge for one idempotency key.
 - Reusing a key with a different body or query string throws a `ConflictException`.

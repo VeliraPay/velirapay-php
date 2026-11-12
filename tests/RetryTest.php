@@ -20,6 +20,7 @@ use VeliraPay\Exceptions\RateLimitException;
 use VeliraPay\Exceptions\ServerException;
 use VeliraPay\Exceptions\ValidationException;
 use VeliraPay\Http\HttpTransport;
+use VeliraPay\Services\ApiKeyService;
 
 final class RetryTest extends TestCase
 {
@@ -247,6 +248,23 @@ final class RetryTest extends TestCase
             $this->assertSame($error, $exception->getPrevious());
             $this->assertCount(3, $this->http->requests);
             $this->assertCount(2, $this->sleeps);
+        }
+    }
+
+    public function test_a_lost_answer_that_carried_a_secret_is_reported_as_a_replayed_conflict(): void
+    {
+        $this->http
+            ->queue(new class('The response could not be read.') extends RuntimeException implements ClientExceptionInterface {})
+            ->json(['message' => 'A request with this Idempotency-Key already succeeded. Its answer carried a secret, which is shown once and not kept, so it cannot be replayed.'], 409, ['Idempotent-Replayed' => 'true']);
+
+        try {
+            (new ApiKeyService($this->transport()))->create(['name' => 'Shop server'], 'new-key');
+            $this->fail('No exception was thrown.');
+        } catch (ConflictException $exception) {
+            $this->assertTrue($exception->wasReplayed());
+            $this->assertStringStartsWith('A request with this Idempotency-Key already succeeded.', $exception->getMessage());
+            $this->assertCount(2, $this->http->requests);
+            $this->assertSame('new-key', $this->http->requests[1]->getHeaderLine('Idempotency-Key'));
         }
     }
 

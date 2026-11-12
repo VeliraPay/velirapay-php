@@ -7,6 +7,7 @@ All notable changes to this library are documented here. It follows [Semantic Ve
 - An answer cut off or timed out after its headers arrived, which Guzzle 8 throws as a `ResponseTransferException` or `ResponseTimeoutException`, is retried like a network error, for reads and for writes carrying an idempotency key, which every write does while retries are on. Before, it was thrown as a `ConnectionException` at once.
 - Cloudflare's 520 to 524, its answers when it gets nothing from VeliraPay, are retried like 502, 503 and 504.
 - `ConnectionException::$idempotencyKey`: the key a write was sent with, the one the library made up included, so the call can be repeated safely once the API answers again.
+- `ConflictException::wasReplayed()`: whether the API answered from an earlier request with the same idempotency key. It is what a retried `apiKeys->create()`, `webhookEndpoints->create()` or `rotateSecret()` gets when its first answer was lost: the write went through, but the key or signing secret it carried is shown once and gone. Their docblocks and the README say how to recover.
 
 ## 0.6.6 - 2026-11-12
 

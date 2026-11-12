@@ -46,6 +46,7 @@ final class ApiKeyService extends Service
 
     /**
      * Create a key in the API key's mode. Its key property holds the key itself, shown this once; leaving permissions out gives full access.
+     * A ConflictException whose wasReplayed() is true means the key was made, by this request retried after its answer was lost or by an earlier one with the same idempotency key, but the key itself is gone: list the keys, revoke that one and create another under a new idempotency key.
      *
      * @param  array{name: string, permissions?: list<ApiKeyPermission|string>|null, allowed_ips?: list<string>|null}  $params
      *

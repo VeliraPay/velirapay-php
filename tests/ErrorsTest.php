@@ -106,6 +106,27 @@ final class ErrorsTest extends TestCase
         }
     }
 
+    public function test_a_conflict_says_whether_it_replayed_an_earlier_request(): void
+    {
+        $this->http
+            ->json(['message' => 'A request with this Idempotency-Key already succeeded. Its answer carried a secret, which is shown once and not kept, so it cannot be replayed.'], 409, ['Idempotent-Replayed' => 'true'])
+            ->json(['message' => 'Only pending charges can be canceled.'], 409);
+
+        try {
+            $this->client()->webhookEndpoints->rotateSecret('12', 'rotate-12');
+            $this->fail('No exception was thrown.');
+        } catch (ConflictException $exception) {
+            $this->assertTrue($exception->wasReplayed());
+        }
+
+        try {
+            $this->client()->charges->cancel('k3v9x2m7q8wz');
+            $this->fail('No exception was thrown.');
+        } catch (ConflictException $exception) {
+            $this->assertFalse($exception->wasReplayed());
+        }
+    }
+
     public function test_a_successful_response_that_is_not_json_is_reported(): void
     {
         $this->http->queue(new Response(200, ['Content-Type' => 'text/html'], '<html>Maintenance</html>'));

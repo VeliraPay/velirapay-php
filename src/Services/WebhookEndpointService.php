@@ -58,6 +58,7 @@ final class WebhookEndpointService extends Service
 
     /**
      * Add an endpoint and send it its verification challenge, which counts against the 10 requests a minute that verifying, testing and retrying share. The answer carries its signing secret, shown this once, and verificationError while it has not answered.
+     * A ConflictException whose wasReplayed() is true means the endpoint was added, by this request retried after its answer was lost or by an earlier one with the same idempotency key, but its secret is gone: list the endpoints and rotate that one's secret.
      *
      * @param  array{url: string, events: list<string>, description?: string|null, active?: bool}  $params
      *
@@ -117,6 +118,7 @@ final class WebhookEndpointService extends Service
 
     /**
      * Replace the endpoint's signing secret. The answer carries the new one, shown this once; the old one keeps signing for a day, until previousSecretExpiresAt.
+     * A ConflictException whose wasReplayed() is true means the secret was replaced, by this request retried after its answer was lost or by an earlier one with the same idempotency key, but the new one is gone: rotate it again, with a new idempotency key.
      *
      * @throws ApiException
      * @throws ConnectionException
