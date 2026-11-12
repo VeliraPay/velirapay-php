@@ -177,7 +177,7 @@ abstract class Service
     }
 
     /**
-     * Write a float, or every float in a list or object, as a plain decimal string of the shortest digits that read back as the same number.
+     * Write a float, or every float in a list or object, as a plain decimal string of its first 14 significant digits, which is how the API reads a number, or from 1e14, where those would round off units, of every digit it takes to read back as the same number.
      *
      * @throws InvalidArgumentException
      */
@@ -195,7 +195,15 @@ abstract class Service
             throw new InvalidArgumentException('An amount must be a finite number.');
         }
 
-        $written = strtolower((string) json_encode($value));
+        $written = sprintf('%.14H', $value);
+
+        if (str_contains($written, 'E+')) {
+            for ($precision = 15; $precision <= 17 && (float) $written !== $value; $precision++) {
+                $written = sprintf('%.'.$precision.'H', $value);
+            }
+        }
+
+        $written = strtolower($written);
 
         if (! str_contains($written, 'e')) {
             return $written;

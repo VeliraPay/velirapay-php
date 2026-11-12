@@ -335,6 +335,12 @@ final class ChargeServiceTest extends TestCase
         yield 'a whole number' => [25.0, '25'];
         yield 'below a microcoin' => [1.5e-7, '0.00000015'];
         yield 'a large amount' => [1.0e20, '100000000000000000000'];
+        yield 'a sum off by binary noise' => [0.1 + 0.2, '0.3'];
+        yield 'a product off by binary noise' => [0.1 * 3, '0.3'];
+        yield 'a small coin amount off by binary noise' => [0.0025 * 1.1, '0.00275'];
+        yield 'just under 1e14' => [99999999999999.9, '99999999999999.9'];
+        yield 'past 1e14, with cents' => [123456789012345.67, '123456789012345.67'];
+        yield 'past 1e15' => [1234567890123456.0, '1234567890123456'];
     }
 
     #[DataProvider('floatAmounts')]
@@ -361,6 +367,57 @@ final class ChargeServiceTest extends TestCase
         $this->assertSame(['ratio' => 5.0E-5], $body['metadata']);
         $this->assertSame(['metadata' => ['score' => 0.5]], $body['customer']);
         $this->assertStringContainsString('"metadata":{"ratio":5.0e-5}', (string) $this->http->lastRequest()->getBody());
+    }
+
+    public function test_a_charges_float_amount_is_sent_to_the_14_significant_digits_the_api_reads(): void
+    {
+        $this->http->json(['data' => self::fixture('charge')], 201)->json(['data' => self::fixture('charge')], 201);
+
+        $this->client()->charges->create(['asset' => 'BTC', 'amount' => 11 * 1.1, 'currency' => 'USD']);
+        $this->client()->charges->create(['asset' => 'BTC', 'amount' => 1.1 + 2.2, 'currency' => 'USD']);
+
+        [$first, $second] = $this->http->requests;
+        $this->assertSame('12.1', self::body($first)['amount']);
+        $this->assertSame('3.3', self::body($second)['amount']);
+    }
+
+    public function test_float_amounts_are_sent_the_same_whatever_serialize_precision_says(): void
+    {
+        $this->http->json(['data' => self::fixture('charge')], 201)->json(['data' => self::fixture('charge')], 201)->json(['data' => self::fixture('charge')]);
+        $previous = (string) ini_get('serialize_precision');
+        ini_set('serialize_precision', '17');
+
+        try {
+            $this->client()->charges->create(['asset' => 'BTC', 'amount' => 49.9, 'currency' => 'USD']);
+            $this->client()->charges->recordRefund('k3v9x2m7q8wz', ['amount' => 0.1 * 3]);
+            $this->client()->charges->simulate('k3v9x2m7q8wz', ['amount' => 0.00005]);
+        } finally {
+            ini_set('serialize_precision', $previous);
+        }
+
+        [$charge, $refund, $simulation] = $this->http->requests;
+        $this->assertSame('49.9', self::body($charge)['amount']);
+        $this->assertSame('0.3', self::body($refund)['amount']);
+        $this->assertSame('0.00005', self::body($simulation)['amount']);
+    }
+
+    public function test_float_amounts_are_written_with_a_decimal_point_whatever_the_locale(): void
+    {
+        $previous = (string) setlocale(LC_NUMERIC, '0');
+
+        if (setlocale(LC_NUMERIC, 'de_DE.UTF-8', 'de_DE', 'German_Germany.1252') === false) {
+            $this->markTestSkipped('No locale that writes a decimal comma is installed.');
+        }
+
+        $this->http->json(['data' => self::fixture('charge')], 201);
+
+        try {
+            $this->client()->charges->recordRefund('k3v9x2m7q8wz', ['amount' => 12.5]);
+        } finally {
+            setlocale(LC_NUMERIC, $previous);
+        }
+
+        $this->assertSame('12.5', self::body($this->http->lastRequest())['amount']);
     }
 
     public function test_an_amount_that_is_not_a_finite_number_is_refused_before_a_request_is_sent(): void
