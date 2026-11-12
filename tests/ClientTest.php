@@ -29,6 +29,13 @@ final class ClientTest extends TestCase
         $this->assertFalse($request->hasHeader('Idempotency-Key'));
     }
 
+    public function test_the_version_is_the_newest_release_in_the_changelog(): void
+    {
+        preg_match('/^## (\d+\.\d+\.\d+) - \d{4}-\d{2}-\d{2}\s*$/m', (string) file_get_contents(__DIR__.'/../CHANGELOG.md'), $matches);
+
+        $this->assertSame(VeliraPayClient::VERSION, $matches[1] ?? null);
+    }
+
     public function test_each_endpoint_group_is_also_reachable_through_a_method(): void
     {
         $client = $this->client();
