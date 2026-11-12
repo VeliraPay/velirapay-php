@@ -1,18 +1,28 @@
 {
     "name": "velirapay/velirapay-php",
-    "description": "The official PHP library for VeliraPay crypto payments: charges, payment links, invoices, events and webhook verification.",
+    "description": "The official PHP library for the VeliraPay crypto payment API: charges, invoices, payment links, coupons, payouts, webhook endpoints, API keys and members, with webhook verification.",
     "type": "library",
     "keywords": [
         "velirapay",
         "crypto",
+        "cryptocurrency",
+        "crypto-payments",
         "payments",
         "payment-gateway",
+        "payment-processing",
         "bitcoin",
+        "lightning",
         "ethereum",
+        "litecoin",
         "solana",
+        "tron",
+        "usdt",
+        "usdc",
+        "stablecoin",
         "webhooks",
         "sdk",
-        "api"
+        "api",
+        "api-client"
     ],
     "homepage": "https://velirapay.com",
     "license": "MIT",
@@ -23,7 +33,7 @@
         }
     ],
     "support": {
-        "docs": "https://velirapay.com/docs",
+        "docs": "https://velirapay.com/docs/libraries",
         "issues": "https://github.com/VeliraPay/velirapay-php/issues",
         "source": "https://github.com/VeliraPay/velirapay-php"
     },
@@ -44,7 +54,7 @@
         "phpunit/phpunit": "^10.5 || ^11.5 || ^12.3 || ^13.0"
     },
     "suggest": {
-        "guzzlehttp/guzzle": "The HTTP client this library creates when none is given, with the timeout option applied (^7.8)."
+        "guzzlehttp/guzzle": "The HTTP client this library creates when none is given, with the timeout option applied (^7.8 or ^8.0)."
     },
     "autoload": {
         "psr-4": {
