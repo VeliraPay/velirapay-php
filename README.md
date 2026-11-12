@@ -65,10 +65,12 @@ $charge = $velirapay->charges->create([
     'success_url' => 'https://example.com/orders/1042',
 ]);
 
-header('Location: '.$charge->checkoutUrl);
+$checkoutUrl = $charge->checkoutUrl ?? throw new RuntimeException('The charge has no checkout URL.');
+
+header('Location: '.$checkoutUrl, true, 303);
 ```
 
-That is the way to charge a customer: create a charge with what you already know, and send them to its checkout page. They pay there, and VeliraPay tells your server about it with a [webhook](#webhooks).
+That is the way to charge a customer: create a charge with what you already know, and send them to its checkout page. They pay there, and VeliraPay tells your server about it with a [webhook](#webhooks). `checkoutUrl` is nullable because the charges in webhooks leave it out; a charge the API answers with always has one.
 
 Amounts are always strings, such as `'49.90'`, never floats, so no precision is lost. Use [bcmath](https://www.php.net/manual/en/book.bc.php) or a money library to do arithmetic on them. An amount you pass as a float is sent as a plain decimal string rounded to 14 significant digits, as the API reads a number, so `0.00005` goes as `'0.00005'` and `0.1 + 0.2` as `'0.3'`. Pass an amount that needs more digits, such as `'0.123456789012345678'` ETH, as a string.
 
@@ -185,13 +187,16 @@ No charge, payment link or invoice asks for less than the lowest price of its cu
 
 `metadata` holds up to 20 keys of at most 40 characters each. Values are strings, numbers, booleans or `null`, and a string is at most 500 characters.
 
-An account can create 300 charges in each mode within 30 minutes, through the API, the MCP server and the dashboard together; canceled charges count, paid live ones do not, and payments customers start on the hosted checkout are not counted. Past that, `create()` throws a `RateLimitException` whose `retryAfter()` says how many seconds to wait.
+An account can create 300 charges in each mode within 30 minutes, or 30 until one of its owner's accounts has been paid in live mode. The limit counts the charges made through the API, the MCP server and the dashboard together, and is shared with the other accounts its owner owns; canceled charges count, paid live ones do not, and payments customers start on the hosted checkout are not counted. Past that, `create()` throws a `RateLimitException` whose `retryAfter()` says how many seconds to wait.
 
 ### Customer details
 
 `$charge->customer` holds what is known about who pays, to help you spot fraud before you ship anything. When the customer starts the payment on the hosted checkout, VeliraPay records the IP address and browser they did it from. A charge you create from your server comes from your server rather than the customer, so pass what you know:
 
 ```php
+$ipAddress = $_SERVER['REMOTE_ADDR'] ?? null;
+$userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+
 $charge = $velirapay->charges->create([
     'amount' => '150.00',
     'currency' => 'USD',
@@ -199,8 +204,8 @@ $charge = $velirapay->charges->create([
     'customer' => [
         'email' => 'ada@example.com',
         'name' => 'Ada Lovelace',
-        'ip_address' => $_SERVER['REMOTE_ADDR'],
-        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+        'ip_address' => is_string($ipAddress) ? $ipAddress : null,
+        'user_agent' => is_string($userAgent) ? $userAgent : null,
         'reference' => 'cus_1042',           // your own id for the customer
         'phone' => '+44 20 7946 0958',
         'country' => 'GB',                   // ISO 3166 two-letter code
@@ -282,7 +287,7 @@ $hers = $velirapay->invoices->list(['search' => 'grace@example.com']);
 
 Pass `amount` instead of `items` to bill a single total.
 
-An invoice can be emailed once every 10 minutes, and an account can send 100 emails to customers an hour: invoices, charges emailed to their customers and refund notices together, shared with the other accounts its owner owns. Past either limit, `send()` throws a `RateLimitException` whose `retryAfter()` says how many seconds to wait, and `create()` with `send_email` throws it and creates nothing. In test mode, invoices are only emailed to members of your account: anyone else is refused with a `ValidationException` on `customer_email`, by `send()` as by `create()` with `send_email`.
+An invoice can be emailed once every 10 minutes, and an account can send 100 emails to customers an hour, or 10 until one of its owner's accounts has been paid in live mode: invoices, charges emailed to their customers and refund notices together, shared with the other accounts its owner owns. Past either limit, `send()` throws a `RateLimitException` whose `retryAfter()` says how many seconds to wait, and `create()` with `send_email` throws it and creates nothing. In test mode, invoices are only emailed to members of your account: anyone else is refused with a `ValidationException` on `customer_email`, by `send()` as by `create()` with `send_email`.
 
 ## Coupons
 
@@ -684,11 +689,12 @@ Add an endpoint in the dashboard under **Developers → Webhooks** and copy its 
 use VeliraPay\Exceptions\SignatureVerificationException;
 use VeliraPay\Webhooks\Webhook;
 
-$payload = file_get_contents('php://input');
+$secret = getenv('VELIRAPAY_WEBHOOK_SECRET') ?: throw new RuntimeException('Set VELIRAPAY_WEBHOOK_SECRET.');
+$payload = file_get_contents('php://input') ?: '';
 $signature = $_SERVER['HTTP_X_VELIRAPAY_SIGNATURE'] ?? null;
 
 try {
-    $event = Webhook::constructEvent($payload, $signature, getenv('VELIRAPAY_WEBHOOK_SECRET'));
+    $event = Webhook::constructEvent($payload, is_string($signature) ? $signature : null, $secret);
 } catch (SignatureVerificationException $exception) {
     http_response_code(400);
     exit;
@@ -813,7 +819,7 @@ A failed request throws an exception carrying the API's message:
 | `NotFoundException` | The object does not exist, or belongs to the other mode (404). |
 | `ConflictException` | The object cannot make that change (409), such as canceling a charge once a transfer to it has been seen or it is no longer pending, accepting one that is neither underpaid nor late, paying a live charge by simulation, or sending or voiding an invoice that is no longer open. Also when the idempotency key was used for a different request, or is held by a request still being processed; that one carries a `Retry-After` and is [retried](#retries-and-idempotency) for you. |
 | `ValidationException` | The request has invalid fields (422). `errors()` lists them, such as `coupon` for a coupon that cannot be used. In test mode, an invoice emailed to someone outside your account is refused this way, on `customer_email`. |
-| `RateLimitException` | Too many requests (429), including an invoice emailed again within 10 minutes, more than 100 emails to customers an hour, and more than 300 charges created in 30 minutes. `retryAfter()` says how many seconds to wait. |
+| `RateLimitException` | Too many requests (429), including an invoice emailed again within 10 minutes, more than 100 emails to customers an hour, and more than 300 charges created in 30 minutes, or 10 emails and 30 charges until one of the owner's accounts has been paid in live mode. `retryAfter()` says how many seconds to wait. |
 | `ServerException` | VeliraPay had a problem (5xx), such as no exchange rate being available to create a charge with (503). |
 | `InvalidRequestException` | Any other 4xx, such as an `Idempotency-Key` longer than 255 characters (400). |
 | `UnexpectedResponseException` | A successful answer the library cannot read, such as a page that is not JSON from something between you and the API. |
@@ -845,10 +851,10 @@ Requests that fail with a network error, an answer cut off or timed out after it
 
 A `Retry-After` longer than `maxRetryAfter` (10 seconds unless [configured](#configuration) otherwise) is not waited out: the exception is thrown straight away, and its `retryAfter()` says how long to wait.
 
-While retries are on, each write carries an `Idempotency-Key` header, so the API carries out a retried request once and answers the retry with the first response. The library makes up a key per call; pass your own, such as an order number, to make a call safe to repeat across processes:
+While retries are on, each write carries an `Idempotency-Key` header, so the API carries out a retried request once and answers the retry with the first response. The library makes up a key per call; pass your own to make a call safe to repeat across processes:
 
 ```php
-$charge = $velirapay->charges->create($params, idempotencyKey: 'order-1042');
+$charge = $velirapay->charges->create($params, idempotencyKey: 'order-1042-attempt-1');
 
 $velirapay->lastResponse()?->wasReplayed(); // true when the API answered from an earlier request
 ```
@@ -856,6 +862,7 @@ $velirapay->lastResponse()?->wasReplayed(); // true when the API answered from a
 What the API does with a key:
 
 - Successful (2xx) responses are replayed for 24 hours to requests repeating the key. A request that failed stores nothing, so repeating it runs it again.
+- Reuse a key only to retry the same request, and give a new attempt a new key: a charge replacing one that expired, created under the first one's key, would get the expired charge back for a day. Hence keys such as `order-1042-attempt-1` rather than the bare order number.
 - An answer that carries a new API key or webhook signing secret is never stored. Creating a key or endpoint, or rotating an endpoint's secret, succeeds once; repeating its idempotency key throws a `ConflictException` saying the request already succeeded, whose `wasReplayed()` is `true`. The library repeats such a request itself when its answer is lost, so that is how you learn it went through: the key or endpoint was created, or the secret rotated, but the secret is gone. List the keys or endpoints, revoke that key or rotate that endpoint's secret, and try again under a new idempotency key, rather than blindly repeating the request.
 - A key is at most 255 characters; a longer one is refused with a 400.
 - A key covers one account, one mode, one HTTP method and one path. Every API key of that account and mode shares it, so two servers using different API keys still create one charge for one idempotency key.
