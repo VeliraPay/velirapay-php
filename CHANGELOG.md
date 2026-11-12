@@ -2,7 +2,7 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.6.6 - 2026-11-12
 
 - `Asset::BTC_LIGHTNING`, `Asset::ETH_BASE`, `Asset::ETH_ARBITRUM` and `Asset::POL`, which the API defines. A coin in the enum is not necessarily on offer: `assets->list()` and `$account->acceptedAssets` say which can be paid right now.
 - `$charge->networkSurcharge` and `$supportedAsset->networkSurcharge`: what a coin such as USDT on Tron asks the customer for on top of the price, for the network, which VeliraPay keeps. A charge counts it in `assetAmount`. It is null for a coin without one.
