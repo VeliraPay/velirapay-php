@@ -141,7 +141,7 @@ final class VeliraPayClient
      *
      * @param  string  $apiKey  A secret key from the dashboard, starting with "vp_live_" or "vp_test_".
      * @param  ClientInterface|null  $httpClient  Any PSR-18 client; Guzzle or a discovered client when null.
-     * @param  int  $maxRetries  How many times a request is tried again after a network error, a rate limit, an outage, or while one with the same idempotency key is still being processed.
+     * @param  int  $maxRetries  How many times a request is tried again after a network error, an answer cut off after it began, a rate limit, an outage, or while one with the same idempotency key is still being processed.
      * @param  float  $timeout  How many seconds a request may take, when this library creates the HTTP client.
      * @param  string|null  $appInfo  Your application's name and version, added to the User-Agent.
      * @param  int  $maxRetryAfter  The longest Retry-After, in seconds, that is waited out before trying again; a longer one is thrown straight away.

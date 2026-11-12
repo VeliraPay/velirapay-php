@@ -24,9 +24,9 @@ use VeliraPay\Exceptions\InvalidArgumentException;
 final class HttpTransport
 {
     /**
-     * The statuses worth another attempt for any request.
+     * The statuses worth another attempt for any request, Cloudflare's 520 to 524 for an origin it could not get an answer from included.
      */
-    private const RETRYABLE_STATUSES = [429, 502, 503, 504];
+    private const RETRYABLE_STATUSES = [429, 502, 503, 504, 520, 521, 522, 523, 524];
 
     /**
      * The response to the most recent request.
@@ -87,14 +87,21 @@ final class HttpTransport
                 $response = $this->send($method, $path, $query, $body, $idempotencyKey);
             } catch (NetworkExceptionInterface $exception) {
                 if ($attempt >= $this->maxRetries) {
-                    throw new ConnectionException('Could not reach the VeliraPay API: '.$exception->getMessage(), 0, $exception);
+                    throw new ConnectionException('Could not reach the VeliraPay API: '.$exception->getMessage(), 0, $exception, $idempotencyKey);
                 }
 
                 ($this->sleep)($this->backoff($attempt++));
 
                 continue;
             } catch (ClientExceptionInterface $exception) {
-                throw new ConnectionException('Could not send the request to the VeliraPay API: '.$exception->getMessage(), 0, $exception);
+                // An answer cut off after its headers may follow a write that was carried out, so only a request the API can recognise is repeated.
+                if ($attempt >= $this->maxRetries || ($method !== 'GET' && $idempotencyKey === null)) {
+                    throw new ConnectionException('Could not send the request to the VeliraPay API: '.$exception->getMessage(), 0, $exception, $idempotencyKey);
+                }
+
+                ($this->sleep)($this->backoff($attempt++));
+
+                continue;
             }
 
             $this->lastResponse = $response;

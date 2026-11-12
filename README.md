@@ -663,7 +663,7 @@ A failed request throws an exception carrying the API's message:
 | `RateLimitException` | Too many requests (429), including an invoice emailed again within 10 minutes, more than 100 emails to customers an hour, and more than 300 charges created in 30 minutes. `retryAfter()` says how many seconds to wait. |
 | `ServerException` | VeliraPay had a problem (5xx), such as no exchange rate being available to create a charge with (503). |
 | `InvalidRequestException` | Any other 4xx, such as an `Idempotency-Key` longer than 255 characters (400). |
-| `ConnectionException` | The API could not be reached. |
+| `ConnectionException` | The API could not be reached, or its answer could not be read, after the [retries](#retries-and-idempotency). `idempotencyKey` is the key a write was sent with, to repeat it safely. |
 
 They live in `VeliraPay\Exceptions`. All of them implement `VeliraPayException`, and all but `ConnectionException` extend `ApiException`, whose `retryAfter()` returns the response's `Retry-After` in seconds, or `null` when it had none.
 
@@ -685,7 +685,7 @@ try {
 
 ## Retries and idempotency
 
-Requests that fail with a network error, a rate limit (429) or an outage (502, 503, 504) are tried again up to twice, waiting a little longer each time, or as long as the API's `Retry-After` header asks. A 500 is retried for reads only, since a write may have been carried out. A 409 is retried only when it carries a `Retry-After`: that is the API still working on an earlier request with the same idempotency key, and the retry gets that request's response once it is done.
+Requests that fail with a network error, an answer cut off or timed out after it began, a rate limit (429) or an outage (502, 503, 504, and Cloudflare's 520 to 524) are tried again up to twice, waiting a little longer each time, or as long as the API's `Retry-After` header asks. A 500 is retried for reads only, since a write may have been carried out. A 409 is retried only when it carries a `Retry-After`: that is the API still working on an earlier request with the same idempotency key, and the retry gets that request's response once it is done.
 
 A `Retry-After` longer than `maxRetryAfter` (10 seconds unless [configured](#configuration) otherwise) is not waited out: the exception is thrown straight away, and its `retryAfter()` says how long to wait.
 
@@ -705,6 +705,18 @@ What the API does with a key:
 - A key covers one account, one mode, one HTTP method and one path. Every API key of that account and mode shares it, so two servers using different API keys still create one charge for one idempotency key.
 - Reusing a key with a different body or query string throws a `ConflictException`.
 - A request holds its key for up to 60 seconds while it is being processed. Another one with the same key gets a 409 with `Retry-After: 1` in that time, which the library waits out and retries.
+
+When the API still cannot be reached, or its answer read, after the retries, a `ConnectionException` is thrown. A write may have been carried out all the same, so `$exception->idempotencyKey` holds the key it was sent with, the one the library made up included: repeating the call with that key is safe, and gets the first request's response if it succeeded.
+
+```php
+use VeliraPay\Exceptions\ConnectionException;
+
+try {
+    $charge = $velirapay->charges->create($params);
+} catch (ConnectionException $exception) {
+    $charge = $velirapay->charges->create($params, idempotencyKey: $exception->idempotencyKey);
+}
+```
 
 ## Test mode
 

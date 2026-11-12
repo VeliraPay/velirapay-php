@@ -2,6 +2,12 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+- An answer cut off or timed out after its headers arrived, which Guzzle 8 throws as a `ResponseTransferException` or `ResponseTimeoutException`, is retried like a network error, for reads and for writes carrying an idempotency key, which every write does while retries are on. Before, it was thrown as a `ConnectionException` at once.
+- Cloudflare's 520 to 524, its answers when it gets nothing from VeliraPay, are retried like 502, 503 and 504.
+- `ConnectionException::$idempotencyKey`: the key a write was sent with, the one the library made up included, so the call can be repeated safely once the API answers again.
+
 ## 0.6.6 - 2026-11-12
 
 - `Asset::BTC_LIGHTNING`, `Asset::ETH_BASE`, `Asset::ETH_ARBITRUM` and `Asset::POL`, which the API defines. A coin in the enum is not necessarily on offer: `assets->list()` and `$account->acceptedAssets` say which can be paid right now.

@@ -5,9 +5,14 @@ declare(strict_types=1);
 namespace VeliraPay\Tests;
 
 use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\ResponseTimeoutException;
+use GuzzleHttp\Exception\ResponseTransferException;
 use GuzzleHttp\Psr7\HttpFactory;
 use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Psr\Http\Client\ClientExceptionInterface;
+use RuntimeException;
 use VeliraPay\Exceptions\ApiException;
 use VeliraPay\Exceptions\ConflictException;
 use VeliraPay\Exceptions\ConnectionException;
@@ -171,6 +176,122 @@ final class RetryTest extends TestCase
             $this->assertCount(3, $this->http->requests);
             $this->assertCount(2, $this->sleeps);
         }
+    }
+
+    public function test_a_network_error_on_the_last_attempt_carries_the_idempotency_key(): void
+    {
+        $error = new ConnectException('Connection refused', new Request('POST', 'https://api.velirapay.com/v1/charges'));
+        $this->http->queue($error, $error, $error);
+
+        try {
+            $this->transport()->request('POST', '/v1/charges', [], ['asset' => 'BTC']);
+            $this->fail('No exception was thrown.');
+        } catch (ConnectionException $exception) {
+            $this->assertSame('Could not reach the VeliraPay API: Connection refused', $exception->getMessage());
+            $this->assertSame($this->http->requests[0]->getHeaderLine('Idempotency-Key'), $exception->idempotencyKey);
+            $this->assertNotNull($exception->idempotencyKey);
+        }
+    }
+
+    public function test_an_answer_cut_off_after_its_headers_is_retried_with_the_same_idempotency_key(): void
+    {
+        if (! class_exists(ResponseTransferException::class)) {
+            $this->markTestSkipped('Guzzle 8 is not installed.');
+        }
+
+        $request = new Request('POST', 'https://api.velirapay.com/v1/charges');
+        $this->http
+            ->queue(new ResponseTransferException('cURL error 18: transfer closed with 512 bytes remaining to read', $request, new Response(201)))
+            ->json(['data' => self::fixture('charge')], 201, ['Idempotent-Replayed' => 'true']);
+
+        $response = $this->transport()->request('POST', '/v1/charges', [], ['asset' => 'BTC'], 'order-1042');
+
+        $this->assertTrue($response->wasReplayed());
+        $this->assertCount(2, $this->http->requests);
+        $this->assertSame('order-1042', $this->http->requests[0]->getHeaderLine('Idempotency-Key'));
+        $this->assertSame('order-1042', $this->http->requests[1]->getHeaderLine('Idempotency-Key'));
+        $this->assertCount(1, $this->sleeps);
+        $this->assertGreaterThanOrEqual(0.375, $this->sleeps[0]);
+        $this->assertLessThanOrEqual(0.625, $this->sleeps[0]);
+    }
+
+    public function test_an_answer_that_times_out_after_its_headers_is_retried_for_reads(): void
+    {
+        if (! class_exists(ResponseTimeoutException::class)) {
+            $this->markTestSkipped('Guzzle 8 is not installed.');
+        }
+
+        $request = new Request('GET', 'https://api.velirapay.com/v1/charges');
+        $this->http
+            ->queue(new ResponseTimeoutException('cURL error 28: Operation timed out after 30001 milliseconds', $request, new Response(200)))
+            ->json(self::listResponse([]));
+
+        $response = $this->transport()->request('GET', '/v1/charges');
+
+        $this->assertSame(200, $response->status);
+        $this->assertCount(2, $this->http->requests);
+        $this->assertFalse($this->http->requests[1]->hasHeader('Idempotency-Key'));
+    }
+
+    public function test_a_failure_to_send_is_retried_until_the_limit_and_then_carries_the_idempotency_key(): void
+    {
+        $error = new class('The response could not be read.') extends RuntimeException implements ClientExceptionInterface {};
+        $this->http->queue($error, $error, $error);
+
+        try {
+            $this->transport(maxRetries: 2)->request('POST', '/v1/api-keys', [], ['name' => 'Shop server'], 'new-key');
+            $this->fail('No exception was thrown.');
+        } catch (ConnectionException $exception) {
+            $this->assertSame('Could not send the request to the VeliraPay API: The response could not be read.', $exception->getMessage());
+            $this->assertSame('new-key', $exception->idempotencyKey);
+            $this->assertSame($error, $exception->getPrevious());
+            $this->assertCount(3, $this->http->requests);
+            $this->assertCount(2, $this->sleeps);
+        }
+    }
+
+    public function test_a_failure_to_send_is_not_retried_when_retries_are_off(): void
+    {
+        $this->http->queue(new class('The response could not be read.') extends RuntimeException implements ClientExceptionInterface {});
+
+        try {
+            $this->transport(maxRetries: 0)->request('POST', '/v1/charges', [], ['asset' => 'BTC']);
+            $this->fail('No exception was thrown.');
+        } catch (ConnectionException $exception) {
+            $this->assertNull($exception->idempotencyKey);
+            $this->assertCount(1, $this->http->requests);
+            $this->assertSame([], $this->sleeps);
+        }
+    }
+
+    /**
+     * @return iterable<string, array{int}>
+     */
+    public static function cloudflareOriginErrors(): iterable
+    {
+        yield 'unknown error' => [520];
+        yield 'web server down' => [521];
+        yield 'connection timed out' => [522];
+        yield 'origin unreachable' => [523];
+        yield 'a timeout occurred' => [524];
+    }
+
+    #[DataProvider('cloudflareOriginErrors')]
+    public function test_cloudflares_origin_errors_are_retried_for_reads_and_keyed_writes(int $status): void
+    {
+        $this->http
+            ->queue(new Response($status, ['Content-Type' => 'text/html'], '<html>Cloudflare</html>'))
+            ->json(self::listResponse([]))
+            ->queue(new Response($status, ['Content-Type' => 'text/html'], '<html>Cloudflare</html>'))
+            ->json(['data' => self::fixture('charge')], 201);
+
+        $this->transport()->request('GET', '/v1/charges');
+        $this->transport()->request('POST', '/v1/charges', [], ['asset' => 'BTC'], 'order-1042');
+
+        $this->assertCount(4, $this->http->requests);
+        $this->assertSame('order-1042', $this->http->requests[2]->getHeaderLine('Idempotency-Key'));
+        $this->assertSame('order-1042', $this->http->requests[3]->getHeaderLine('Idempotency-Key'));
+        $this->assertCount(2, $this->sleeps);
     }
 
     public function test_client_errors_are_not_retried(): void
