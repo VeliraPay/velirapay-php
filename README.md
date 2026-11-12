@@ -54,7 +54,8 @@ Create an API key in the dashboard under **Developers → API keys**. Keep it on
 ```php
 use VeliraPay\VeliraPayClient;
 
-$velirapay = new VeliraPayClient(getenv('VELIRAPAY_API_KEY'));
+$apiKey = getenv('VELIRAPAY_API_KEY') ?: throw new RuntimeException('Set VELIRAPAY_API_KEY.');
+$velirapay = new VeliraPayClient($apiKey);
 
 $charge = $velirapay->charges->create([
     'amount' => '49.90',
@@ -802,7 +803,7 @@ Some things to know:
 The charge and invoice in a delivery are not quite the ones the API returns:
 
 - A charge's coin amounts and exchange rate carry all 18 decimal places (`"0.002500000000000000"` rather than `"0.0025"`). Compare amounts as numbers, not as strings.
-- A charge has no `timeline`, `refunds`, `checkoutUrl` or `receiptUrl`. Its `payment_link` is `{code, title}` and its `invoice` is `{code, number}`: `$charge->paymentLink` and `$charge->invoice` hold the code, and `$charge->paymentLinkTitle` and `$charge->invoiceNumber` the rest, which are `null` on the charges the API returns.
+- A charge has no `timeline`, `refunds`, `checkoutUrl`, `receiptUrl`, `successUrl`, `cancelUrl` or `successMessage`. Its `payment_link` is `{code, title}` and its `invoice` is `{code, number}`: `$charge->paymentLink` and `$charge->invoice` hold the code, and `$charge->paymentLinkTitle` and `$charge->invoiceNumber` the rest, which are `null` on the charges the API returns.
 - An invoice has no `overdue` or `documentUrl`; both are `null`.
 - `charge.refunded` carries no refund. Read its amount, txid and reason from the event, with `$velirapay->events->retrieve($event->eventId)->details`, which holds `amount`, and `txid` and `reason` when you gave them.
 
@@ -903,7 +904,7 @@ Every key starts with `vp_live_` or `vp_test_`, and the client throws an `Invali
 
 ```php
 $velirapay = new VeliraPayClient(
-    apiKey: getenv('VELIRAPAY_API_KEY'),
+    apiKey: getenv('VELIRAPAY_API_KEY') ?: throw new RuntimeException('Set VELIRAPAY_API_KEY.'),
     baseUrl: 'https://api.velirapay.com', // the API's address, VeliraPayClient::DEFAULT_BASE_URL
     maxRetries: 2,           // 0 turns retries off
     maxRetryAfter: 10,       // the longest Retry-After, in seconds, waited out before trying again
@@ -916,7 +917,7 @@ To use another HTTP client, or configure its proxy and timeouts yourself, pass a
 
 ```php
 $velirapay = new VeliraPayClient(
-    apiKey: getenv('VELIRAPAY_API_KEY'),
+    apiKey: getenv('VELIRAPAY_API_KEY') ?: throw new RuntimeException('Set VELIRAPAY_API_KEY.'),
     httpClient: new Symfony\Component\HttpClient\Psr18Client(),
 );
 ```
