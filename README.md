@@ -184,6 +184,20 @@ $velirapay->charges->recordRefund('k3v9x2m7q8wz', [
 
 A charge in `Asset::BTC_LIGHTNING` is paid with a Lightning invoice rather than to an address: show the customer `$charge->paymentRequest`, the BOLT11 invoice, as a `lightning:` link or a QR code. Its `depositAddress` is the invoice's payment hash, and `paymentRequest` is `null` for every other coin.
 
+TRX and USDT on Tron (`Asset::USDT_TRON`) share deposit addresses, so a customer can pay a charge's address in the other one. When a charge expired or was canceled with nothing in its own coin while the other arrived, VeliraPay quotes it again in the coin that arrived: `asset`, `assetAmount`, `exchangeRate` and `networkSurcharge` then describe that coin, `fiatAmount` stays the same, and `$charge->switchedFrom` keeps the first quote. The transfer waits as a late payment for you to accept. A charge switches once at most, and `switchedFrom` is `null` for every other charge, so read the coin from the charge in front of you rather than the one you created it in.
+
+```php
+$charge->switchedFrom?->asset;        // "TRX", the coin the charge was first quoted in
+$charge->switchedFrom?->assetAmount;  // "36.633334"
+$charge->switchedFrom?->exchangeRate; // "0.3"
+$charge->switchedFrom?->switchedAt;   // DateTimeImmutable, when it was quoted again
+
+$charge->processingTerms?->percent;              // "1.75", the processing fee fixed when the charge was quoted
+$charge->processingTerms?->maxForwardingPercent; // 10, the most forwarding may cost, as a share of your payout
+```
+
+`processingTerms` is `null` for charges quoted before VeliraPay fixed them and for VeliraPay's own billing.
+
 No charge, payment link or invoice asks for less than the lowest price of its currency, below which a payment would be mostly network fees: 0.50 in USD, EUR, GBP and CHF, 0.70 in CAD, 0.80 in AUD and 25.00 in TRY. A lower `amount` throws a `ValidationException` on `amount`, such as `Enter at least €0.50.`, and a coin with a minimum of its own can ask for more ([Supported coins](#supported-coins)).
 
 `metadata` holds up to 20 keys of at most 40 characters each. Values are strings, numbers, booleans or `null`, and a string is at most 500 characters.
@@ -807,13 +821,13 @@ Some things to know:
 - **Modes.** A test-mode charge is announced to the endpoints added in test mode, and a live one to the live ones, so an endpoint hears of one mode only. If one URL serves both, compare `$event->mode` with the mode of the key your shop uses, `$velirapay->mode()?->value`, and leave the other mode's events alone; keep handling test mode while you try your integration with a `vp_test_` key.
 - **Signatures expire.** A signature more than 5 minutes from the current time is rejected, which stops an intercepted delivery from being replayed. Change the limit with the non-negative `tolerance` argument; `0` explicitly disables the age check.
 
-`charge.payment_detected` arrives as soon as a transfer to a charge is seen on-chain, before it is confirmed; `charge.late_payment` when one reaches a charge that already expired, was canceled or was paid, or tops up an underpaid charge after its rate lock ended, which is announced once it has confirmed. A late payment to an expired, canceled or underpaid charge waits for you to accept it; one on top of a paid charge is counted automatically. Both carry that transfer as `$event->transaction` (`txid`, `amount`, `confirmations`, `requiredConfirmations`, `credited`, `explorerUrl`, `seenAt`); for every other event it is `null`.
+`charge.payment_detected` arrives as soon as a transfer to a charge is seen on-chain, before it is confirmed; `charge.late_payment` when one reaches a charge that already expired, was canceled or was paid, or tops up an underpaid charge after its rate lock ended, which is announced once it has confirmed. A late payment to an expired, canceled or underpaid charge waits for you to accept it; one on top of a paid charge is counted automatically. Both carry that transfer as `$event->transaction` (`txid`, `amount`, `confirmations`, `requiredConfirmations`, `credited`, `explorerUrl`, `seenAt`); for every other event it is `null`. A late payment in the other coin of a Tron address comes with the charge already quoted again in that coin, and `$event->charge->switchedFrom` holding the first quote ([Charges](#charges)), so read the coin and amounts from each payload rather than from the charge you created.
 
 `payout.sent` arrives when your share of a paid charge has been broadcast, and `payout.confirmed` when the chain has confirmed it. Both carry the charge as `$event->charge` and the payout as `$event->payout`, the same object `$velirapay->payouts->retrieve()` returns; for every other event it is `null`. Book the money on `payout.confirmed`: a broadcast payout can still be dropped or fail and go out again, so `payout.sent` can arrive more than once for a charge. `networkFee` on `payout.sent` can be the most the chain may charge, where `payout.confirmed` has what it took, and a USDT or USDC payout left unmined bids again under a new `payoutTxid`, so the one that counts is the one in `payout.confirmed`.
 
 The charge and invoice in a delivery are not quite the ones the API returns:
 
-- A charge's coin amounts and exchange rate carry all 18 decimal places (`"0.002500000000000000"` rather than `"0.0025"`). Compare amounts as numbers, not as strings.
+- A charge's coin amounts and exchange rate carry all 18 decimal places (`"0.002500000000000000"` rather than `"0.0025"`), and so do those in its `switchedFrom`. Compare amounts as numbers, not as strings.
 - A charge has no `timeline`, `refunds`, `checkoutUrl`, `receiptUrl`, `successUrl`, `cancelUrl` or `successMessage`. Its `payment_link` is `{code, title}` and its `invoice` is `{code, number}`: `$charge->paymentLink` and `$charge->invoice` hold the code, and `$charge->paymentLinkTitle` and `$charge->invoiceNumber` the rest, which are `null` on the charges the API returns.
 - An invoice has no `overdue`, `documentUrl`, `successUrl` or `cancelUrl`; all four are `null`.
 - `charge.refunded` carries no refund. Read its amount, txid and reason from the event, with `$velirapay->events->retrieve($event->eventId)->details`, which holds `amount`, and `txid` and `reason` when you gave them.

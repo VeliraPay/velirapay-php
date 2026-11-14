@@ -1,0 +1,82 @@
+{
+    "id": "3e8b1d6a-7c2f-4a95-b0d4-6f1e2a3b4c5d",
+    "event_id": "c4d2a9e7-1b3f-4e68-8a0c-2d3e4f5a6b7c",
+    "event": "charge.late_payment",
+    "mode": "live",
+    "created_at": "2026-11-14T12:05:50.000000Z",
+    "data": {
+        "charge": {
+            "code": "t6r3w8n2k5qy",
+            "status": "expired",
+            "fiat_amount": "10.99",
+            "fiat_currency": "USD",
+            "coupon": null,
+            "discount_amount": null,
+            "asset": "USDT_TRON",
+            "asset_amount": "13.490000000000000000",
+            "network_surcharge": "2.500000000000000000",
+            "processing_terms": {
+                "percent": "1.75",
+                "max_forwarding_percent": 10
+            },
+            "switched_from": {
+                "asset": "TRX",
+                "asset_amount": "36.633334000000000000",
+                "exchange_rate": "0.300000000000000000",
+                "switched_at": "2026-11-14T12:05:49.000000Z"
+            },
+            "received_amount": null,
+            "remaining_amount": "13.490000000000000000",
+            "overpaid": false,
+            "refunded_amount": "0",
+            "exchange_rate": "1.000000000000000000",
+            "deposit_address": "TJCnKsPa7y5okkXvQAidZBzqx3QyQ6sxMW",
+            "payment_request": null,
+            "transactions": [
+                {
+                    "txid": "4b9e2f7a1c6d3e8b5a0f9c2d7e4b1a6f3c8d5e2b9a7f4c1d6e3b8a5f2c9d7e4b",
+                    "amount": "13.490000000000000000",
+                    "confirmations": 19,
+                    "required_confirmations": 19,
+                    "credited": false,
+                    "explorer_url": "https://tronscan.org/#/transaction/4b9e2f7a1c6d3e8b5a0f9c2d7e4b1a6f3c8d5e2b9a7f4c1d6e3b8a5f2c9d7e4b",
+                    "seen_at": "2026-11-14T12:05:48.000000Z"
+                }
+            ],
+            "customer_email": "ada@example.com",
+            "customer_name": null,
+            "customer": {
+                "email": "ada@example.com",
+                "name": null,
+                "ip_address": "203.0.113.7",
+                "ip_country": "DE",
+                "ip_asn": 24940,
+                "ip_network": "Hetzner Online GmbH",
+                "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15",
+                "reference": null,
+                "phone": null,
+                "country": null,
+                "metadata": []
+            },
+            "custom_fields": [],
+            "description": "Pro plan, 1 month",
+            "metadata": {
+                "order_id": "1043"
+            },
+            "payment_link": null,
+            "invoice": null,
+            "created_at": "2026-11-14T11:30:00.000000Z",
+            "expires_at": "2026-11-14T12:00:00.000000Z",
+            "paid_at": null
+        },
+        "transaction": {
+            "txid": "4b9e2f7a1c6d3e8b5a0f9c2d7e4b1a6f3c8d5e2b9a7f4c1d6e3b8a5f2c9d7e4b",
+            "amount": "13.490000000000000000",
+            "confirmations": 19,
+            "required_confirmations": 19,
+            "credited": false,
+            "explorer_url": "https://tronscan.org/#/transaction/4b9e2f7a1c6d3e8b5a0f9c2d7e4b1a6f3c8d5e2b9a7f4c1d6e3b8a5f2c9d7e4b",
+            "seen_at": "2026-11-14T12:05:48.000000Z"
+        }
+    }
+}

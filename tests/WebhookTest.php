@@ -92,6 +92,40 @@ final class WebhookTest extends TestCase
         $this->assertEquals(new DateTimeImmutable('2026-09-20T09:58:12Z'), $transaction->seenAt);
     }
 
+    public function test_a_late_payment_in_the_other_coin_carries_the_charge_quoted_again_and_its_first_quote(): void
+    {
+        $payload = self::payload('webhook_late_payment');
+
+        $event = Webhook::constructEvent($payload, Webhook::signatureHeader($payload, self::SECRET), self::SECRET);
+
+        $this->assertTrue($event->is(EventType::ChargeLatePayment));
+
+        $transaction = $event->transaction;
+        $this->assertNotNull($transaction);
+        $this->assertSame('13.490000000000000000', $transaction->amount);
+        $this->assertFalse($transaction->credited);
+
+        $charge = $event->charge;
+        $this->assertNotNull($charge);
+        $this->assertTrue($charge->isExpired());
+        $this->assertSame('USDT_TRON', $charge->asset);
+        $this->assertSame('13.490000000000000000', $charge->assetAmount);
+        $this->assertSame('2.500000000000000000', $charge->networkSurcharge);
+        $this->assertSame('1.000000000000000000', $charge->exchangeRate);
+
+        $first = $charge->switchedFrom;
+        $this->assertNotNull($first);
+        $this->assertSame('TRX', $first->asset);
+        $this->assertSame('36.633334000000000000', $first->assetAmount);
+        $this->assertSame('0.300000000000000000', $first->exchangeRate);
+        $this->assertEquals(new DateTimeImmutable('2026-11-14T12:05:49Z'), $first->switchedAt);
+
+        $terms = $charge->processingTerms;
+        $this->assertNotNull($terms);
+        $this->assertSame('1.75', $terms->percent);
+        $this->assertSame(10, $terms->maxForwardingPercent);
+    }
+
     public function test_a_delivery_without_the_country_and_network_of_the_ip_address_reads_them_as_null(): void
     {
         $payload = '{"id":"5f0c6f5e-8d1b-4a53-9a57-3c2b1d0e9f87","event_id":"9b1f7a3e-2c4d-4e8f-a6b0-1d2c3e4f5a6b","event":"charge.paid","mode":"live","created_at":"2026-09-20T10:05:42.000000Z","data":{"charge":{"code":"k3v9x2m7q8wz","status":"paid","customer":{"email":"ada@example.com","name":null,"ip_address":"203.0.113.7","user_agent":"Mozilla/5.0","reference":null,"phone":null,"country":null,"metadata":[]}}}}';

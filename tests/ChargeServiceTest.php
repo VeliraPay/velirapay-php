@@ -194,6 +194,56 @@ final class ChargeServiceTest extends TestCase
         $this->assertNull($charge->networkSurcharge);
     }
 
+    public function test_a_charge_quoted_again_in_the_coin_that_arrived_keeps_its_first_quote(): void
+    {
+        $this->http->json(['data' => [
+            'status' => 'expired',
+            'fiat_amount' => '10.99',
+            'fiat_currency' => 'USD',
+            'asset' => 'USDT_TRON',
+            'asset_amount' => '13.49',
+            'network_surcharge' => '2.5',
+            'exchange_rate' => '1',
+            'deposit_address' => 'TJCnKsPa7y5okkXvQAidZBzqx3QyQ6sxMW',
+            'switched_from' => ['asset' => 'TRX', 'asset_amount' => '36.633334', 'exchange_rate' => '0.3', 'switched_at' => '2026-11-14T12:05:49.000000Z'],
+            'processing_terms' => ['percent' => '1.75', 'max_forwarding_percent' => 10],
+        ] + self::fixture('charge')]);
+
+        $charge = $this->client()->charges->retrieve('k3v9x2m7q8wz');
+
+        $this->assertSame(Asset::USDT_TRON->value, $charge->asset);
+        $this->assertSame('13.49', $charge->assetAmount);
+        $this->assertSame('1', $charge->exchangeRate);
+        $this->assertSame('2.5', $charge->networkSurcharge);
+        $this->assertSame('10.99', $charge->fiatAmount);
+
+        $first = $charge->switchedFrom;
+        $this->assertNotNull($first);
+        $this->assertSame(Asset::TRX->value, $first->asset);
+        $this->assertSame('36.633334', $first->assetAmount);
+        $this->assertSame('0.3', $first->exchangeRate);
+        $this->assertEquals(new DateTimeImmutable('2026-11-14T12:05:49Z'), $first->switchedAt);
+
+        $terms = $charge->processingTerms;
+        $this->assertNotNull($terms);
+        $this->assertSame('1.75', $terms->percent);
+        $this->assertSame(10, $terms->maxForwardingPercent);
+    }
+
+    public function test_a_charge_without_a_first_quote_or_processing_terms_reads_them_as_null(): void
+    {
+        $this->http->json(['data' => self::fixture('charge')])
+            ->json(['data' => ['switched_from' => null, 'processing_terms' => null] + self::fixture('charge')]);
+
+        $absent = $this->client()->charges->retrieve('k3v9x2m7q8wz');
+        $null = $this->client()->charges->retrieve('k3v9x2m7q8wz');
+
+        $this->assertNull($absent->switchedFrom);
+        $this->assertNull($absent->processingTerms);
+        $this->assertNull($null->switchedFrom);
+        $this->assertNull($null->processingTerms);
+    }
+
     public function test_a_charge_sent_without_a_customer_object_takes_it_from_the_older_fields(): void
     {
         $attributes = self::fixture('charge');
@@ -262,6 +312,8 @@ final class ChargeServiceTest extends TestCase
         $this->assertNull($charge->customer->ipCountry);
         $this->assertNull($charge->customer->ipAsn);
         $this->assertNull($charge->customer->ipNetwork);
+        $this->assertNull($charge->switchedFrom);
+        $this->assertNull($charge->processingTerms);
     }
 
     public function test_attributes_the_library_does_not_know_are_kept(): void

@@ -43,9 +43,9 @@ final class Charge extends ApiResource
         public readonly string $fiatAmount,
         /** One of the Currency values: the fiat currency, such as "USD". */
         public readonly string $fiatCurrency,
-        /** One of the Asset values: the coin and network paid with, such as "BTC" or "USDT". */
+        /** One of the Asset values: the coin and network paid with, such as "BTC" or "USDT". It can change once, when the charge's address was paid in the other coin it takes: see switchedFrom. */
         public readonly string $asset,
-        /** The exact amount of the coin to send. */
+        /** The exact amount of the coin to send; after a switch, of the coin that arrived. */
         public readonly string $assetAmount,
         /** What has been credited so far, or null before anything arrived. */
         public readonly ?string $receivedAmount,
@@ -57,7 +57,7 @@ final class Charge extends ApiResource
         public readonly string $refundedAmount,
         /** The refunds recorded against the charge; absent from webhooks. */
         public readonly array $refunds,
-        /** Fiat per one unit of the coin, locked when the charge was created. */
+        /** Fiat per one unit of the coin, locked when the charge was created, or when it was quoted again in the coin that arrived. */
         public readonly string $exchangeRate,
         /** The address the customer pays into, or the payment hash of the Lightning invoice for BTC_LIGHTNING. */
         public readonly string $depositAddress,
@@ -94,7 +94,7 @@ final class Charge extends ApiResource
         public readonly ?string $cancelUrl = null,
         /** What the customer is told once they have paid; absent from webhooks. */
         public readonly ?string $successMessage = null,
-        /** What of assetAmount the customer pays on top of the price for the network, which VeliraPay keeps; null for a coin without one. */
+        /** What of assetAmount the customer pays on top of the price for the network, which VeliraPay keeps; null for a coin without one. After a switch, that of the coin that arrived. */
         public readonly ?string $networkSurcharge = null,
         /** The Lightning invoice (BOLT11) the customer pays, for BTC_LIGHTNING; null for every other coin. */
         public readonly ?string $paymentRequest = null,
@@ -102,6 +102,10 @@ final class Charge extends ApiResource
         public readonly ?string $paymentLinkTitle = null,
         /** The number of the invoice the charge pays, such as "INV-0042", in webhooks alone; null in the API's answers. */
         public readonly ?string $invoiceNumber = null,
+        /** The quote the charge first had, when it closed with nothing in its own coin while the other coin its address takes (TRX or USDT_TRON) arrived, and VeliraPay quoted it again in that one; null for almost every charge. A charge switches once at most. */
+        public readonly ?OriginalQuote $switchedFrom = null,
+        /** The processing fee and forwarding limit fixed when the charge was quoted; null for older charges and VeliraPay's own billing. */
+        public readonly ?ProcessingTerms $processingTerms = null,
     ) {
         parent::__construct($attributes);
 
@@ -163,6 +167,8 @@ final class Charge extends ApiResource
             paymentRequest: self::nullableString($data, 'payment_request'),
             paymentLinkTitle: self::nullableString(self::map($data, 'payment_link'), 'title'),
             invoiceNumber: self::nullableString(self::map($data, 'invoice'), 'number'),
+            switchedFrom: self::object($data, 'switched_from', OriginalQuote::fromArray(...)),
+            processingTerms: self::object($data, 'processing_terms', ProcessingTerms::fromArray(...)),
         );
     }
 
