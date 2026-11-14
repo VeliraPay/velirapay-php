@@ -63,6 +63,8 @@ final class Payout extends ApiResource
         public readonly ?DateTimeImmutable $confirmedAt,
         /** When the books were written. */
         public readonly ?DateTimeImmutable $createdAt,
+        /** What was set aside from the merchant's share for a payout whose exact cost is unknown when it is sent (ETH and the other EVM chains' own coins, TRX, Lightning routing); null for older charges, Bitcoin-family coins, USDT and USDC forwarders and payouts not yet sent. */
+        public readonly ?NetworkReserve $merchantNetworkReserve = null,
     ) {
         parent::__construct($attributes);
     }
@@ -98,6 +100,7 @@ final class Payout extends ApiResource
             sentAt: self::date($data, 'sent_at'),
             confirmedAt: self::date($data, 'confirmed_at'),
             createdAt: self::date($data, 'created_at'),
+            merchantNetworkReserve: self::object($data, 'merchant_network_reserve', NetworkReserve::fromArray(...)),
         );
     }
 

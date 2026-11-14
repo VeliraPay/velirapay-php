@@ -365,6 +365,10 @@ $payout->payoutTxid;   // the transaction, and $payout->explorerUrl its page on 
 $payout->lastError;    // why the last try did not work, or why it is held
 $payout->nextAttemptAt;
 
+$payout->merchantNetworkReserve?->reserved; // what was set aside from your share for network costs
+$payout->merchantNetworkReserve?->held;     // what of it is still held for you
+$payout->merchantNetworkReserve?->residual; // what was left unused once every cost was known
+
 $failed = $velirapay->payouts->list(['status' => PayoutStatus::Failed]);
 $tether = $velirapay->payouts->list(['asset' => Asset::USDT, 'search' => '0x9a4f']); // a charge id or a transaction hash
 
@@ -377,6 +381,8 @@ foreach ($velirapay->payouts->summary() as $coin) {
     $coin->waitingForAddress; // how many payouts wait for you to give an address
 }
 ```
+
+Under the processing terms charges carry (`$charge->processingTerms`), your share pays the network costs of forwarding it. Where a payout's exact cost is unknown when it is sent, as for ETH and the other EVM chains' own coins, TRX and Lightning routing, an estimate is set aside from your share first, and `$payout->merchantNetworkReserve` follows it: `reserved` is what was set aside, `payoutCost` what forwarding cost (`null` until known), `sweepBudget` and `sweepCost` the later sweep of VeliraPay's fee to its cold wallet, `sweepAvailable` what remains of that budget, `held` what is still held for you, counting open costs at their most, and `residual` what was left unused once every cost was known (`null` until then). The residual stays owed to you and is recorded, not sent back automatically. `merchantNetworkReserve` is `null` for older charges, Bitcoin-family coins, USDT and USDC forwarders and payouts not yet sent, and webhooks carry it too.
 
 ## Events
 

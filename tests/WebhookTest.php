@@ -157,6 +157,23 @@ final class WebhookTest extends TestCase
         $this->assertSame('0.0000044', $payout->networkFee);
         $this->assertSame('cc9a3e0b5629235194a6174d805c55df5554c94e2b4de8dc584db2091cc5cacf', $payout->payoutTxid);
         $this->assertEquals(new DateTimeImmutable('2026-09-20T10:41:02Z'), $payout->confirmedAt);
+        $this->assertNull($payout->merchantNetworkReserve);
+    }
+
+    public function test_a_payout_delivery_carries_what_was_set_aside_for_its_network_costs(): void
+    {
+        $payload = '{"id":"0199f0c2-7a1e-7c44-9d3a-2b8f1a2b3c4e","event_id":"0199f0c2-7a1d-7f12-8a6b-5e4d3c2b1a0a","event":"payout.confirmed","mode":"live","created_at":"2026-11-14T13:20:03.000000Z","data":{"charge":{"code":"e5h8k2m6p9rt","status":"paid","asset":"ETH"},"payout":{"id":"e5h8k2m6p9rt","object":"payout","charge":"e5h8k2m6p9rt","status":"sent","asset":"ETH","merchant_network_reserve":{"reserved":"0.0004","payout_cost":"0.00025","sweep_budget":"0.0001","sweep_cost":"0.00008","sweep_available":"0.00002","held":"0.00007","residual":"0.00007"}}}}';
+
+        $reserve = Webhook::constructEvent($payload, Webhook::signatureHeader($payload, self::SECRET), self::SECRET)->payout?->merchantNetworkReserve;
+
+        $this->assertNotNull($reserve);
+        $this->assertSame('0.0004', $reserve->reserved);
+        $this->assertSame('0.00025', $reserve->payoutCost);
+        $this->assertSame('0.0001', $reserve->sweepBudget);
+        $this->assertSame('0.00008', $reserve->sweepCost);
+        $this->assertSame('0.00002', $reserve->sweepAvailable);
+        $this->assertSame('0.00007', $reserve->held);
+        $this->assertSame('0.00007', $reserve->residual);
     }
 
     public function test_only_a_payout_delivery_carries_a_payout(): void

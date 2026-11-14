@@ -56,6 +56,36 @@ final class PayoutServiceTest extends TestCase
         $this->assertEquals(new DateTimeImmutable('2026-11-02T21:00:04Z'), $payout->confirmedAt);
     }
 
+    public function test_a_payout_reads_what_was_set_aside_for_its_network_costs(): void
+    {
+        $this->http->json(['data' => [
+            'asset' => 'ETH',
+            'merchant_network_reserve' => [
+                'reserved' => '0.0004', 'payout_cost' => '0.00025', 'sweep_budget' => '0.0001', 'sweep_cost' => null,
+                'sweep_available' => '0.0001', 'held' => '0.00015', 'residual' => null,
+            ],
+        ] + self::payout()]);
+
+        $reserve = $this->client()->payouts->retrieve('k3v9x2m7q8wz')->merchantNetworkReserve;
+
+        $this->assertNotNull($reserve);
+        $this->assertSame('0.0004', $reserve->reserved);
+        $this->assertSame('0.00025', $reserve->payoutCost);
+        $this->assertSame('0.0001', $reserve->sweepBudget);
+        $this->assertNull($reserve->sweepCost);
+        $this->assertSame('0.0001', $reserve->sweepAvailable);
+        $this->assertSame('0.00015', $reserve->held);
+        $this->assertNull($reserve->residual);
+    }
+
+    public function test_a_payout_without_a_network_reserve_reads_it_as_null(): void
+    {
+        $this->http->json(['data' => self::payout()])->json(['data' => ['merchant_network_reserve' => null] + self::payout()]);
+
+        $this->assertNull($this->client()->payouts->retrieve('k3v9x2m7q8wz')->merchantNetworkReserve);
+        $this->assertNull($this->client()->payouts->retrieve('k3v9x2m7q8wz')->merchantNetworkReserve);
+    }
+
     public function test_payouts_are_listed_with_their_filters(): void
     {
         $this->http->json(['data' => [self::payout()], 'meta' => ['current_page' => 1, 'last_page' => 1, 'per_page' => 25, 'total' => 1]]);
