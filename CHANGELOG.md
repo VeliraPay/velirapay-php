@@ -2,7 +2,7 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.6.10 - 2026-11-14
 
 - `$charge->switchedFrom`, an `OriginalQuote` (`asset`, `assetAmount`, `exchangeRate`, `switchedAt`), which the API's answers, the charges events carry and webhooks now send. TRX and USDT on Tron share deposit addresses, and when a charge expired or was canceled with nothing in its own coin while the other arrived, VeliraPay quotes it again in the coin that arrived: `asset`, `assetAmount`, `exchangeRate` and `networkSurcharge` then describe that coin, `fiatAmount` is unchanged, and `switchedFrom` keeps the first quote. The transfer arrives as `charge.late_payment` for you to accept, and `charge.paid` follows in the new coin. A charge switches once at most, and `switchedFrom` is null for every other one, so read the coin from each payload rather than remembering the one a charge was created in. In webhooks its amounts carry all 18 decimal places, like the charge's own.
 - `$charge->processingTerms`, a `ProcessingTerms` (`percent`, such as `"1.75"`, and `maxForwardingPercent`, such as `10`), which the API's answers and webhooks have carried since 2026-11-14: the processing fee fixed when the charge was quoted, and the most managed forwarding may cost as a percentage of your share. It is null for charges from before then and for VeliraPay's own billing.
