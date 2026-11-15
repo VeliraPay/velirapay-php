@@ -207,16 +207,16 @@ final class WebhookTest extends TestCase
         $this->assertEquals(new DateTimeImmutable('2026-10-15T00:00:00Z'), $invoice->dueAt);
     }
 
-    public function test_an_invoice_delivery_naming_nobody_or_from_before_its_checkout_options_reads_them_as_null(): void
+    public function test_an_invoice_delivery_with_only_an_email_or_from_before_its_checkout_options_reads_the_rest_as_null(): void
     {
-        $payload = '{"id":"0e6d1c9a-4b7f-4f2e-8c3d-5a6b7c8d9e0f","event_id":"2a4c6e8f-1b3d-4f5a-9c7e-0d2f4a6c8e1b","event":"invoice.voided","mode":"live","created_at":"2026-11-15T00:00:05.000000Z","data":{"invoice":{"code":"w7c2h5j9d3kx","number":"INV-0042","status":"void","amount":"1250.00","currency":"USD","customer_name":null,"customer_email":null,"hosted_url":"https://velirapay.com/i/w7c2h5j9d3kx","charges":[],"voided_at":"2026-11-15T00:00:04.000000Z"}}}';
+        $payload = '{"id":"0e6d1c9a-4b7f-4f2e-8c3d-5a6b7c8d9e0f","event_id":"2a4c6e8f-1b3d-4f5a-9c7e-0d2f4a6c8e1b","event":"invoice.voided","mode":"live","created_at":"2026-11-15T00:00:05.000000Z","data":{"invoice":{"code":"w7c2h5j9d3kx","number":"INV-0042","status":"void","amount":"1250.00","currency":"USD","customer_name":null,"customer_email":"grace@example.com","hosted_url":"https://velirapay.com/i/w7c2h5j9d3kx","charges":[],"voided_at":"2026-11-15T00:00:04.000000Z"}}}';
 
         $invoice = Webhook::constructEvent($payload, Webhook::signatureHeader($payload, self::SECRET), self::SECRET)->invoice;
 
         $this->assertNotNull($invoice);
         $this->assertTrue($invoice->isVoid());
         $this->assertNull($invoice->customerName);
-        $this->assertNull($invoice->customerEmail);
+        $this->assertSame('grace@example.com', $invoice->customerEmail);
         $this->assertNull($invoice->overdue);
         $this->assertNull($invoice->documentUrl);
         $this->assertNull($invoice->expiresAt);

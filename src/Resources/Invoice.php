@@ -29,9 +29,9 @@ final class Invoice extends ApiResource
         public readonly string $status,
         /** Whether the invoice is open past its due date; null in a webhook from before VeliraPay sent it. */
         public readonly ?bool $overdue,
-        /** The customer's name, or null when the invoice names nobody. */
+        /** The customer's name, such as their username, or null when the invoice was given only an email. */
         public readonly ?string $customerName,
-        /** The customer's email address, or null when it has none and can therefore not be sent or reminded. */
+        /** The customer's email address, or null when the invoice was given only a name and can therefore not be sent or reminded. */
         public readonly ?string $customerEmail,
         /** A note shown on the invoice. */
         public readonly ?string $memo,

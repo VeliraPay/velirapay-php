@@ -39,14 +39,15 @@ final class InvoiceServiceTest extends TestCase
         $this->assertSame('w7c2h5j9d3kx', $invoice->id);
     }
 
-    public function test_an_invoice_is_created_for_nobody_in_particular_with_its_expiry_in_utc_and_a_success_message(): void
+    public function test_an_invoice_is_created_for_a_username_alone_with_its_expiry_in_utc_and_a_success_message(): void
     {
         $this->http
-            ->json(['data' => ['customer_name' => null, 'customer_email' => null] + self::fixture('invoice')], 201)
+            ->json(['data' => ['customer_name' => 'buyer_1042', 'customer_email' => null] + self::fixture('invoice')], 201)
             ->json(['data' => self::fixture('invoice')], 201);
         $expiresAt = new DateTimeImmutable('2026-10-31 20:00:00', new DateTimeZone('America/New_York'));
 
         $invoice = $this->client()->invoices->create([
+            'customer_name' => 'buyer_1042',
             'currency' => 'USD',
             'amount' => '1250.00',
             'expires_at' => $expiresAt,
@@ -54,15 +55,16 @@ final class InvoiceServiceTest extends TestCase
         ]);
 
         $this->assertSame([
+            'customer_name' => 'buyer_1042',
             'currency' => 'USD',
             'amount' => '1250.00',
             'expires_at' => '2026-11-01T00:00:00+00:00',
             'success_message' => 'Thank you, your order is on its way.',
         ], self::body($this->http->lastRequest()));
-        $this->assertNull($invoice->customerName);
+        $this->assertSame('buyer_1042', $invoice->customerName);
         $this->assertNull($invoice->customerEmail);
 
-        $this->client()->invoices->create(['currency' => 'USD', 'amount' => '1250.00', 'expires_at' => '2026-10-31']);
+        $this->client()->invoices->create(['customer_name' => 'buyer_1042', 'currency' => 'USD', 'amount' => '1250.00', 'expires_at' => '2026-10-31']);
 
         $this->assertSame('2026-10-31', self::body($this->http->lastRequest())['expires_at']);
     }
