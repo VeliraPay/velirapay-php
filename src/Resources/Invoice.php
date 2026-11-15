@@ -8,7 +8,7 @@ use DateTimeImmutable;
 use VeliraPay\Enums\InvoiceStatus;
 
 /**
- * A bill sent to one customer, paid through a hosted page in the coin they choose.
+ * A bill, paid through a hosted page in the coin the customer chooses.
  */
 final class Invoice extends ApiResource
 {
@@ -27,12 +27,12 @@ final class Invoice extends ApiResource
         public readonly string $number,
         /** One of the InvoiceStatus values: open, paid or void. */
         public readonly string $status,
-        /** Whether the invoice is open past its due date; absent from webhooks. */
+        /** Whether the invoice is open past its due date; null in a webhook from before VeliraPay sent it. */
         public readonly ?bool $overdue,
-        /** The customer's name. */
-        public readonly string $customerName,
-        /** The customer's email address. */
-        public readonly string $customerEmail,
+        /** The customer's name, or null when the invoice names nobody. */
+        public readonly ?string $customerName,
+        /** The customer's email address, or null when it has none and can therefore not be sent or reminded. */
+        public readonly ?string $customerEmail,
         /** A note shown on the invoice. */
         public readonly ?string $memo,
         /** The total due. */
@@ -45,7 +45,7 @@ final class Invoice extends ApiResource
         public readonly ?DateTimeImmutable $dueAt,
         /** The page where the customer pays. */
         public readonly string $hostedUrl,
-        /** The printable invoice; absent from webhooks. */
+        /** The printable invoice; null in a webhook from before VeliraPay sent it. */
         public readonly ?string $documentUrl,
         /** The charges made to pay the invoice, one per coin the customer tried. */
         public readonly array $charges,
@@ -59,10 +59,14 @@ final class Invoice extends ApiResource
         public readonly ?DateTimeImmutable $voidedAt,
         /** When it was created. */
         public readonly ?DateTimeImmutable $createdAt,
-        /** The page the customer is offered a button back to once they have paid; absent from webhooks. */
+        /** The page the customer is offered a button back to once they have paid. */
         public readonly ?string $successUrl = null,
-        /** The page the customer can go back to from the invoice without paying; absent from webhooks. */
+        /** The page the customer can go back to from the invoice without paying. */
         public readonly ?string $cancelUrl = null,
+        /** When the invoice stops taking new payments; a payment already started can still be finished, and an invoice still unpaid then is voided. */
+        public readonly ?DateTimeImmutable $expiresAt = null,
+        /** What the customer is told once they have paid, or null when the account's own message applies. */
+        public readonly ?string $successMessage = null,
     ) {
         parent::__construct($attributes);
     }
@@ -80,8 +84,8 @@ final class Invoice extends ApiResource
             number: self::string($data, 'number'),
             status: self::string($data, 'status'),
             overdue: self::nullableBool($data, 'overdue'),
-            customerName: self::string($data, 'customer_name'),
-            customerEmail: self::string($data, 'customer_email'),
+            customerName: self::nullableString($data, 'customer_name'),
+            customerEmail: self::nullableString($data, 'customer_email'),
             memo: self::nullableString($data, 'memo'),
             amount: self::string($data, 'amount', '0'),
             currency: self::string($data, 'currency'),
@@ -101,6 +105,8 @@ final class Invoice extends ApiResource
             createdAt: self::date($data, 'created_at'),
             successUrl: self::nullableString($data, 'success_url'),
             cancelUrl: self::nullableString($data, 'cancel_url'),
+            expiresAt: self::date($data, 'expires_at'),
+            successMessage: self::nullableString($data, 'success_message'),
         );
     }
 

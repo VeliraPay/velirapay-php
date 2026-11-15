@@ -19,9 +19,9 @@ use VeliraPay\Resources\Invoice;
 final class InvoiceService extends Service
 {
     /**
-     * Create an invoice, for a total or a list of items, and optionally email it to the customer. A DateTimeInterface given as due_at is sent as the day it falls on where it is.
+     * Create an invoice, for a total or a list of items, and optionally email it to the customer, which needs customer_email. A DateTimeInterface given as due_at is sent as the day it falls on where it is, and one given as expires_at as the same moment in UTC; a YYYY-MM-DD date as expires_at closes the invoice at the end of that day.
      *
-     * @param  array{customer_name: string, customer_email: string, currency: Currency|string, amount?: numeric-string|int|float, items?: list<array{description: string, quantity: numeric-string|int|float, unit_amount: numeric-string|int|float}>, memo?: string|null, due_at?: DateTimeInterface|string|null, success_url?: string|null, cancel_url?: string|null, send_email?: bool}  $params
+     * @param  array{customer_name?: string|null, customer_email?: string|null, currency: Currency|string, amount?: numeric-string|int|float, items?: list<array{description: string, quantity: numeric-string|int|float, unit_amount: numeric-string|int|float}>, memo?: string|null, due_at?: DateTimeInterface|string|null, expires_at?: DateTimeInterface|string|null, success_url?: string|null, cancel_url?: string|null, success_message?: string|null, send_email?: bool}  $params
      *
      * @throws ApiException
      * @throws ConnectionException
@@ -75,7 +75,7 @@ final class InvoiceService extends Service
     }
 
     /**
-     * Email an open invoice to its customer, as a reminder when it was sent before.
+     * Email an open invoice to its customer, as a reminder when it was sent before. An invoice without a customer email is refused on customer_email, and one that is no longer open or has expired with a conflict.
      *
      * @throws ApiException
      * @throws ConnectionException

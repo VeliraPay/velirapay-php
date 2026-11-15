@@ -39,6 +39,34 @@ final class InvoiceServiceTest extends TestCase
         $this->assertSame('w7c2h5j9d3kx', $invoice->id);
     }
 
+    public function test_an_invoice_is_created_for_nobody_in_particular_with_its_expiry_in_utc_and_a_success_message(): void
+    {
+        $this->http
+            ->json(['data' => ['customer_name' => null, 'customer_email' => null] + self::fixture('invoice')], 201)
+            ->json(['data' => self::fixture('invoice')], 201);
+        $expiresAt = new DateTimeImmutable('2026-10-31 20:00:00', new DateTimeZone('America/New_York'));
+
+        $invoice = $this->client()->invoices->create([
+            'currency' => 'USD',
+            'amount' => '1250.00',
+            'expires_at' => $expiresAt,
+            'success_message' => 'Thank you, your order is on its way.',
+        ]);
+
+        $this->assertSame([
+            'currency' => 'USD',
+            'amount' => '1250.00',
+            'expires_at' => '2026-11-01T00:00:00+00:00',
+            'success_message' => 'Thank you, your order is on its way.',
+        ], self::body($this->http->lastRequest()));
+        $this->assertNull($invoice->customerName);
+        $this->assertNull($invoice->customerEmail);
+
+        $this->client()->invoices->create(['currency' => 'USD', 'amount' => '1250.00', 'expires_at' => '2026-10-31']);
+
+        $this->assertSame('2026-10-31', self::body($this->http->lastRequest())['expires_at']);
+    }
+
     public function test_an_invoices_float_amounts_are_sent_as_plain_decimal_strings(): void
     {
         $this->http->json(['data' => self::fixture('invoice')], 201)->json(['data' => self::fixture('invoice')], 201);
@@ -69,15 +97,18 @@ final class InvoiceServiceTest extends TestCase
         $this->assertTrue($invoice->isOpen());
         $this->assertFalse($invoice->overdue);
         $this->assertSame('Grace Hopper', $invoice->customerName);
+        $this->assertSame('grace@example.com', $invoice->customerEmail);
         $this->assertSame('1250.00', $invoice->amount);
         $this->assertCount(2, $invoice->items);
         $this->assertSame('2.5', $invoice->items[1]->quantity);
         $this->assertSame('250.00', $invoice->items[1]->total);
         $this->assertEquals(new DateTimeImmutable('2026-10-15T00:00:00Z'), $invoice->dueAt);
+        $this->assertEquals(new DateTimeImmutable('2026-10-31T23:59:59Z'), $invoice->expiresAt);
         $this->assertSame('https://velirapay.com/i/w7c2h5j9d3kx', $invoice->hostedUrl);
         $this->assertSame('https://velirapay.com/i/w7c2h5j9d3kx/document', $invoice->documentUrl);
         $this->assertSame('https://example.com/orders/1042', $invoice->successUrl);
         $this->assertNull($invoice->cancelUrl);
+        $this->assertSame('Thank you, your order is on its way.', $invoice->successMessage);
         $this->assertSame([['id' => 'm2q7w4e9r1ty', 'status' => 'expired', 'asset' => 'ETH']], $invoice->charges);
         $this->assertEquals(new DateTimeImmutable('2026-09-21T08:00:00Z'), $invoice->sentAt);
         $this->assertNull($invoice->paidAt);

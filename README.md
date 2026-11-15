@@ -84,7 +84,7 @@ Each group of endpoints is a property, such as `$velirapay->charges`, and also a
 | When | Use | |
 | --- | --- | --- |
 | You are asking one customer for one payment | A [charge](#charges) | The default. It has one checkout page for that one payment, with the rate locked for 30 minutes. |
-| The customer should choose the coin, or pays later | An [invoice](#invoices) | It needs their name and email, has no timer, can be itemised and reminded, and lets them pick the coin on its page. |
+| The customer should choose the coin, or pays later | An [invoice](#invoices) | It has no rate timer, can stay open until paid or close on a date you choose, can be itemised, emailed and reminded, and lets them pick the coin on its page. |
 | Many customers pay through the same public page | A [payment link](#payment-links), created once | A product sold again and again, a tip jar, a link on your site. |
 
 Do not create a new payment link for each customer or each order.
@@ -296,7 +296,9 @@ $invoice = $velirapay->invoices->create([
         ['description' => 'Hosting', 'quantity' => '1', 'unit_amount' => '250.00'],
     ],
     'due_at' => new DateTimeImmutable('+14 days'),
+    'expires_at' => new DateTimeImmutable('+30 days'), // optional: no new payment after this
     'success_url' => 'https://example.com/orders/1042',
+    'success_message' => 'Thank you, we will be in touch.', // on the page and in the receipt
     'send_email' => true,
 ]);
 
@@ -312,6 +314,10 @@ $hers = $velirapay->invoices->list(['search' => 'grace@example.com']);
 ```
 
 Pass `amount` instead of `items` to bill a single total.
+
+`customer_name` and `customer_email` are optional: an invoice that names nobody can be paid by whoever has its link, and `$invoice->customerName` and `customerEmail` are then `null`. `send_email` needs a `customer_email`, or `create()` throws a `ValidationException` on `customer_email` and creates nothing, and `send()` throws the same for an invoice without one.
+
+`expires_at` closes an invoice to new payments: a `DateTimeInterface` is sent as the same moment in UTC, and a `YYYY-MM-DD` date closes it at 23:59:59 UTC that day. A payment the customer already started can still be finished in its coin; an invoice still unpaid once it has closed, with no payment under way, is voided, with `invoice.voided`. `$invoice->expiresAt` reads it back, or `null` when the invoice stays open until it is paid or voided. `send()` throws a `ConflictException` for an invoice that has expired, as for one no longer open. `success_message` is what the customer is told once they have paid, on the page and in their receipt; left out, your account's own message applies.
 
 An invoice can be emailed once every 10 minutes, and an account can send 100 emails to customers an hour, or 10 until one of its owner's accounts has been paid in live mode: invoices, charges emailed to their customers and refund notices together, shared with the other accounts its owner owns. Past either limit, `send()` throws a `RateLimitException` whose `retryAfter()` says how many seconds to wait, and `create()` with `send_email` throws it and creates nothing. In test mode, invoices are only emailed to members of your account: anyone else is refused with a `ValidationException` on `customer_email`, by `send()` as by `create()` with `send_email`.
 
@@ -835,7 +841,7 @@ The charge and invoice in a delivery are not quite the ones the API returns:
 
 - A charge's coin amounts and exchange rate carry all 18 decimal places (`"0.002500000000000000"` rather than `"0.0025"`), and so do those in its `switchedFrom`. Compare amounts as numbers, not as strings.
 - A charge has no `timeline`, `refunds`, `checkoutUrl`, `receiptUrl`, `successUrl`, `cancelUrl` or `successMessage`. Its `payment_link` is `{code, title}` and its `invoice` is `{code, number}`: `$charge->paymentLink` and `$charge->invoice` hold the code, and `$charge->paymentLinkTitle` and `$charge->invoiceNumber` the rest, which are `null` on the charges the API returns.
-- An invoice has no `overdue`, `documentUrl`, `successUrl` or `cancelUrl`; all four are `null`.
+- An invoice and its charges are named by `code`, which the library reads as `id`, and it carries every other field the API returns. Its `overdue`, `documentUrl`, `successUrl`, `cancelUrl`, `expiresAt` and `successMessage` are `null` in a delivery from before VeliraPay sent them.
 - `charge.refunded` carries no refund. Read its amount, txid and reason from the event, with `$velirapay->events->retrieve($event->eventId)->details`, which holds `amount`, and `txid` and `reason` when you gave them.
 
 Fetch the object when you need what a delivery leaves out. The charges that events carry, from `GET /v1/events`, have no `timeline` either.
@@ -849,8 +855,8 @@ A failed request throws an exception carrying the API's message:
 | `AuthenticationException` | The API key is missing, wrong or revoked (401). |
 | `PermissionException` | The API key may not do this (403): a restricted key without the permission the endpoint needs, such as `charges:write`, or a key used from an IP address it does not allow. The message names which. An owner or admin can change the key's permissions and addresses in the dashboard; the key itself stays the same. |
 | `NotFoundException` | The object does not exist, or belongs to the other mode (404). |
-| `ConflictException` | The object cannot make that change (409), such as canceling a charge once a transfer to it has been seen or it is no longer pending, accepting one that is neither underpaid nor late, paying a live charge by simulation, or sending or voiding an invoice that is no longer open. Also when the idempotency key was used for a different request, or is held by a request still being processed; that one carries a `Retry-After` and is [retried](#retries-and-idempotency) for you. |
-| `ValidationException` | The request has invalid fields (422). `errors()` lists them, such as `coupon` for a coupon that cannot be used. In test mode, an invoice emailed to someone outside your account is refused this way, on `customer_email`. |
+| `ConflictException` | The object cannot make that change (409), such as canceling a charge once a transfer to it has been seen or it is no longer pending, accepting one that is neither underpaid nor late, paying a live charge by simulation, sending or voiding an invoice that is no longer open, or sending one that has expired. Also when the idempotency key was used for a different request, or is held by a request still being processed; that one carries a `Retry-After` and is [retried](#retries-and-idempotency) for you. |
+| `ValidationException` | The request has invalid fields (422). `errors()` lists them, such as `coupon` for a coupon that cannot be used. An invoice sent, or created with `send_email`, without a customer email is refused this way, on `customer_email`, and so, in test mode, is one emailed to someone outside your account. |
 | `RateLimitException` | Too many requests (429), including an invoice emailed again within 10 minutes, more than 100 emails to customers an hour, and more than 300 charges created in 30 minutes, or 10 emails and 30 charges until one of the owner's accounts has been paid in live mode. `retryAfter()` says how many seconds to wait. |
 | `ServerException` | VeliraPay had a problem (5xx), such as no exchange rate being available to create a charge with (503). |
 | `InvalidRequestException` | Any other 4xx, such as an `Idempotency-Key` longer than 255 characters (400). |
