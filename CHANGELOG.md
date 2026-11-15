@@ -2,6 +2,13 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## 0.6.11 - 2026-11-15
+
+- `invoices->create()` no longer needs `customer_name` or `customer_email`: an invoice that names nobody can be paid by whoever has its link. `send_email` still needs a `customer_email`, or the API refuses it with a `ValidationException` on `customer_email`, and `invoices->send()` does the same for an invoice without one. `$invoice->customerName` and `$invoice->customerEmail` are now `?string`, `null` for such an invoice, where a missing one read as `''` before; code that passes them on as strings may need to allow for that.
+- `invoices->create()` takes `expires_at`, when the invoice stops taking new payments, and `success_message`, what the customer is told once they have paid, on the page and in their receipt, in place of the account's own message. A `DateTimeInterface` given as `expires_at` is sent as the same moment in UTC, as for payment links, and a `YYYY-MM-DD` date closes the invoice at 23:59:59 UTC that day. A payment already started can still be finished in its coin; an invoice still unpaid once it has closed, with no payment under way, is voided, with `invoice.voided`, and `invoices->send()` refuses an expired one with a `ConflictException`.
+- `$invoice->expiresAt` and `$invoice->successMessage` read them back, from the API and from webhooks. They come last in `Invoice`'s constructor, with null defaults.
+- The invoice in `invoice.*` webhooks now carries `overdue`, `documentUrl`, `successUrl` and `cancelUrl` too, as the API returns them, rather than leaving them `null`. They and the new fields stay `null` in a delivery from before VeliraPay sent them.
+
 ## 0.6.10 - 2026-11-14
 
 - `$charge->switchedFrom`, an `OriginalQuote` (`asset`, `assetAmount`, `exchangeRate`, `switchedAt`), which the API's answers, the charges events carry and webhooks now send. TRX and USDT on Tron share deposit addresses, and when a charge expired or was canceled with nothing in its own coin while the other arrived, VeliraPay quotes it again in the coin that arrived: `asset`, `assetAmount`, `exchangeRate` and `networkSurcharge` then describe that coin, `fiatAmount` is unchanged, and `switchedFrom` keeps the first quote. The transfer arrives as `charge.late_payment` for you to accept, and `charge.paid` follows in the new coin. A charge switches once at most, and `switchedFrom` is null for every other one, so read the coin from each payload rather than remembering the one a charge was created in. In webhooks its amounts carry all 18 decimal places, like the charge's own.
