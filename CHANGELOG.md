@@ -2,6 +2,10 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## 0.6.12 - 2026-11-15
+
+- An invoice must name its customer: `invoices->create()` needs `customer_name`, `customer_email` or both, and without either the API refuses it with a `ValidationException` on `customer_name` and creates nothing. A name alone, such as the buyer's username on your site, is enough, so one invoice per order still works as a checkout where the buyer picks the coin. `$invoice->customerName` is `null` for an invoice given only an email, and `$invoice->customerEmail` for one given only a name, which cannot be sent or reminded. The types are unchanged, and the README now shows it.
+
 ## 0.6.11 - 2026-11-15
 
 - `invoices->create()` no longer needs `customer_name` or `customer_email`: an invoice that names nobody can be paid by whoever has its link. `send_email` still needs a `customer_email`, or the API refuses it with a `ValidationException` on `customer_email`, and `invoices->send()` does the same for an invoice without one. `$invoice->customerName` and `$invoice->customerEmail` are now `?string`, `null` for such an invoice, where a missing one read as `''` before; code that passes them on as strings may need to allow for that.
