@@ -73,6 +73,16 @@ final class WebhookTest extends TestCase
         $this->assertSame('INV-0042', $paid->invoiceNumber);
     }
 
+    public function test_an_answer_delivered_before_types_reads_as_short_text(): void
+    {
+        $payload = '{"id":"5f0c6f5e-8d1b-4a53-9a57-3c2b1d0e9f87","event_id":"9b1f7a3e-2c4d-4e8f-a6b0-1d2c3e4f5a6b","event":"charge.paid","mode":"live","created_at":"2026-09-20T10:05:42.000000Z","data":{"charge":{"code":"m2q7w4e9r1ty","status":"paid","custom_fields":[{"label":"Company","value":"Analytical Engines Ltd"}]}}}';
+
+        $charge = Webhook::constructEvent($payload, Webhook::signatureHeader($payload, self::SECRET), self::SECRET)->charge;
+
+        $this->assertNotNull($charge);
+        $this->assertSame([['label' => 'Company', 'value' => 'Analytical Engines Ltd', 'type' => 'text']], $charge->customFields);
+    }
+
     public function test_a_payment_detected_delivery_carries_the_transfer_that_was_seen(): void
     {
         $payload = self::payload('webhook_payment_detected');
