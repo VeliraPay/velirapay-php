@@ -17,6 +17,7 @@ use VeliraPay\Enums\Currency;
 use VeliraPay\Enums\EventType;
 use VeliraPay\Enums\MemberRole;
 use VeliraPay\Enums\PlanName;
+use VeliraPay\Enums\QuestionType;
 use VeliraPay\Enums\WebhookDeliveryStatus;
 use VeliraPay\Resources\PayoutAddress;
 
@@ -38,6 +39,7 @@ final class ConstantsTest extends TestCase
         yield 'plan names' => [PlanName::class, ['free', 'pro']];
         yield 'account types' => [AccountType::class, ['personal', 'organization']];
         yield 'checkout locales' => [CheckoutLocale::class, ['en', 'fr', 'de', 'es', 'tr', 'pt', 'ru', 'ar']];
+        yield 'question types' => [QuestionType::class, ['text', 'textarea', 'number', 'email', 'phone', 'url', 'date', 'select', 'checkbox', 'country']];
     }
 
     /**

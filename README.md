@@ -251,6 +251,7 @@ A payment link is one reusable public checkout page, for a fixed price or one th
 ```php
 use VeliraPay\Enums\Asset;
 use VeliraPay\Enums\PricingType;
+use VeliraPay\Enums\QuestionType;
 
 $link = $velirapay->paymentLinks->create([
     'title' => 'Pro plan',
@@ -259,7 +260,11 @@ $link = $velirapay->paymentLinks->create([
     'currency' => 'EUR',
     'accepted_assets' => [Asset::BTC, Asset::ETH, Asset::USDC], // null accepts every coin the account takes
     'success_url' => 'https://example.com/thanks',
-    'custom_fields' => [['label' => 'Company', 'required' => false]],
+    'custom_fields' => [
+        ['label' => 'Company'], // short text, optional
+        ['label' => 'Seats', 'type' => QuestionType::Number, 'required' => true, 'min' => '1', 'max' => '50'],
+        ['label' => 'Billing', 'type' => QuestionType::Select, 'options' => ['Monthly', 'Yearly']],
+    ],
 ]);
 
 echo $link->checkoutUrl; // https://velirapay.com/pay/…
@@ -279,6 +284,8 @@ $velirapay->paymentLinks->restore($link->id);
 
 $existing = $velirapay->paymentLinks->list(['status' => 'active', 'search' => 'Pro plan']);
 ```
+
+A link asks up to ten questions. Each needs only its `label`; `type` is a `QuestionType` case or its value (short or long text, number, email, phone, link, date, dropdown, checkbox or country) and is short text when left out. A question can also have a `placeholder`, a `help` line, a dropdown's `options`, bounds as strings in `min` and `max` (lengths for text, values for a number, `YYYY-MM-DD` for a date) and, for short text, a regular expression in `pattern` that the whole answer has to match, with `pattern_hint` shown when it does not. `$link->customFields` reads every setting back, `null` where a question does not use it, in the same shape. The answers land on the charge as `$charge->customFields`, each with its `label`, its `value`, always a string (a ticked checkbox is `"yes"`, a phone number E.164, a country its two-letter code), and the question's `type`.
 
 ## Invoices
 

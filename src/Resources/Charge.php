@@ -6,6 +6,7 @@ namespace VeliraPay\Resources;
 
 use DateTimeImmutable;
 use VeliraPay\Enums\ChargeStatus;
+use VeliraPay\Enums\QuestionType;
 
 /**
  * A single payment in one coin, with the rate locked and a deposit address of its own.
@@ -24,7 +25,7 @@ final class Charge extends ApiResource
      * @param  list<Refund>  $refunds
      * @param  list<Transaction>  $transactions
      * @param  list<array{event: string, time: DateTimeImmutable|null}>  $timeline
-     * @param  list<array{label: string, value: string}>  $customFields
+     * @param  list<array{label: string, value: string, type: string}>  $customFields
      * @param  array<string, mixed>  $metadata
      */
     public function __construct(
@@ -69,7 +70,7 @@ final class Charge extends ApiResource
         public readonly ?string $customerEmail,
         /** The customer's name. */
         public readonly ?string $customerName,
-        /** Labelled details: the customer's answers to the payment link's questions, or what was passed when creating the charge. */
+        /** Labelled details: the customer's answers to the payment link's questions, or what was passed when creating the charge. Each value is a string (a ticked checkbox is "yes", a phone number E.164, a country its two-letter code), and type is the question's QuestionType value, "text" for details passed when creating the charge or kept before types. */
         public readonly array $customFields,
         /** The merchant's own key-value data. */
         public readonly array $metadata,
@@ -149,6 +150,7 @@ final class Charge extends ApiResource
             customFields: array_map(static fn (array $field): array => [
                 'label' => self::string($field, 'label'),
                 'value' => self::string($field, 'value'),
+                'type' => self::string($field, 'type', QuestionType::Text->value),
             ], self::records($data, 'custom_fields')),
             metadata: self::map($data, 'metadata'),
             checkoutUrl: self::nullableString($data, 'checkout_url'),

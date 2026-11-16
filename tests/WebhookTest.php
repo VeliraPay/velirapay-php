@@ -45,6 +45,7 @@ final class WebhookTest extends TestCase
         $this->assertSame(24940, $charge->customer->ipAsn);
         $this->assertSame('Hetzner Online GmbH', $charge->customer->ipNetwork);
         $this->assertSame('ada@example.com', $charge->customer->email);
+        $this->assertSame([['label' => 'Country', 'value' => 'GB', 'type' => 'country']], $charge->customFields);
         $this->assertSame(['order_id' => '1042'], $charge->metadata);
         $this->assertSame([], $charge->refunds);
         $this->assertNull($charge->checkoutUrl);

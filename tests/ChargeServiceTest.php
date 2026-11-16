@@ -128,7 +128,7 @@ final class ChargeServiceTest extends TestCase
         $this->assertSame('+44 20 7946 0958', $charge->customer->phone);
         $this->assertSame('GB', $charge->customer->country);
         $this->assertSame(['orders' => 7, 'verified' => true], $charge->customer->metadata);
-        $this->assertSame([['label' => 'Company', 'value' => 'Analytical Engines Ltd']], $charge->customFields);
+        $this->assertSame([['label' => 'Company', 'value' => 'Analytical Engines Ltd', 'type' => 'text'], ['label' => 'Newsletter', 'value' => 'yes', 'type' => 'checkbox']], $charge->customFields);
         $this->assertSame(['order_id' => '1042'], $charge->metadata);
         $this->assertSame('https://velirapay.com/c/k3v9x2m7q8wz', $charge->checkoutUrl);
         $this->assertSame('https://velirapay.com/c/k3v9x2m7q8wz/receipt', $charge->receiptUrl);

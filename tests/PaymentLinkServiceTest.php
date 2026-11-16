@@ -9,6 +9,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use VeliraPay\Enums\Asset;
 use VeliraPay\Enums\PricingType;
+use VeliraPay\Enums\QuestionType;
 use VeliraPay\Resources\PaymentLink;
 
 final class PaymentLinkServiceTest extends TestCase
@@ -73,6 +74,41 @@ final class PaymentLinkServiceTest extends TestCase
         $this->assertSame('19.99', self::body($this->http->lastRequest())['amount']);
     }
 
+    public function test_typed_questions_are_sent_with_their_settings(): void
+    {
+        $this->http->json(['data' => self::fixture('payment_link')], 201)->json(['data' => self::fixture('payment_link')]);
+
+        $this->client()->paymentLinks->create([
+            'title' => 'Tip jar',
+            'pricing_type' => PricingType::Open,
+            'currency' => 'USD',
+            'custom_fields' => [
+                ['label' => 'Plan', 'type' => QuestionType::Select, 'required' => true, 'options' => ['Monthly', 'Yearly']],
+                ['label' => 'Order number', 'type' => 'text', 'pattern' => 'ORD-[0-9]{6}', 'pattern_hint' => 'Write it as ORD-123456.'],
+                ['label' => 'Message'],
+            ],
+        ]);
+
+        $this->assertSame([
+            ['label' => 'Plan', 'type' => 'select', 'required' => true, 'options' => ['Monthly', 'Yearly']],
+            ['label' => 'Order number', 'type' => 'text', 'pattern' => 'ORD-[0-9]{6}', 'pattern_hint' => 'Write it as ORD-123456.'],
+            ['label' => 'Message'],
+        ], self::body($this->http->lastRequest())['custom_fields']);
+
+        $this->client()->paymentLinks->update('p4n8r2t6y1ua', ['custom_fields' => [['label' => 'Seats', 'type' => QuestionType::Number, 'min' => '1', 'max' => '20']]]);
+
+        $this->assertSame([['label' => 'Seats', 'type' => 'number', 'min' => '1', 'max' => '20']], self::body($this->http->lastRequest())['custom_fields']);
+    }
+
+    public function test_a_question_saved_before_types_reads_as_short_text(): void
+    {
+        $this->http->json(['data' => [...self::fixture('payment_link'), 'custom_fields' => [['label' => 'Message', 'required' => false]]]]);
+
+        $link = $this->client()->paymentLinks->retrieve('p4n8r2t6y1ua');
+
+        $this->assertSame([['label' => 'Message', 'type' => 'text', 'required' => false, 'placeholder' => null, 'help' => null, 'options' => null, 'min' => null, 'max' => null, 'pattern' => null, 'pattern_hint' => null]], $link->customFields);
+    }
+
     public function test_a_payment_link_is_read_into_typed_properties(): void
     {
         $this->http->json(['data' => self::fixture('payment_link')]);
@@ -91,7 +127,10 @@ final class PaymentLinkServiceTest extends TestCase
         $this->assertTrue($link->isActive());
         $this->assertTrue($link->collectName);
         $this->assertFalse($link->requireEmail);
-        $this->assertSame([['label' => 'Message', 'required' => false]], $link->customFields);
+        $this->assertSame([
+            ['label' => 'Message', 'type' => 'textarea', 'required' => false, 'placeholder' => 'Say something nice', 'help' => null, 'options' => null, 'min' => null, 'max' => '500', 'pattern' => null, 'pattern_hint' => null],
+            ['label' => 'Plan', 'type' => 'select', 'required' => true, 'placeholder' => null, 'help' => 'You can change it later.', 'options' => ['Monthly', 'Yearly'], 'min' => null, 'max' => null, 'pattern' => null, 'pattern_hint' => null],
+        ], $link->customFields);
         $this->assertNull($link->expiresAt);
         $this->assertSame(100, $link->maxPayments);
         $this->assertTrue($link->acceptingPayments);

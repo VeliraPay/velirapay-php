@@ -7,6 +7,7 @@ namespace VeliraPay\Resources;
 use DateTimeImmutable;
 use VeliraPay\Enums\PaymentLinkStatus;
 use VeliraPay\Enums\PricingType;
+use VeliraPay\Enums\QuestionType;
 
 /**
  * A shareable checkout page that creates a charge for each customer who pays through it.
@@ -19,7 +20,7 @@ final class PaymentLink extends ApiResource
      * @param  array<string, mixed>  $attributes
      * @param  list<string>  $suggestedAmounts
      * @param  list<string>|null  $acceptedAssets
-     * @param  list<array{label: string, required: bool}>  $customFields
+     * @param  list<array{label: string, type: string, required: bool, placeholder: string|null, help: string|null, options: list<string>|null, min: string|null, max: string|null, pattern: string|null, pattern_hint: string|null}>  $customFields
      */
     public function __construct(
         array $attributes,
@@ -53,7 +54,7 @@ final class PaymentLink extends ApiResource
         public readonly bool $collectName,
         /** Whether the checkout requires the customer's email address. */
         public readonly bool $requireEmail,
-        /** The questions the checkout asks. */
+        /** The questions the checkout asks, in order, each with its type (one of the QuestionType values, "text" for a link saved before types) and settings, null where unused; in the shape payment links are created with. */
         public readonly array $customFields,
         /** The message shown once the payment lands. */
         public readonly ?string $successMessage,
@@ -101,7 +102,15 @@ final class PaymentLink extends ApiResource
             requireEmail: self::bool($data, 'require_email'),
             customFields: array_map(static fn (array $field): array => [
                 'label' => self::string($field, 'label'),
+                'type' => self::string($field, 'type', QuestionType::Text->value),
                 'required' => self::bool($field, 'required'),
+                'placeholder' => self::nullableString($field, 'placeholder'),
+                'help' => self::nullableString($field, 'help'),
+                'options' => self::nullableStrings($field, 'options'),
+                'min' => self::nullableString($field, 'min'),
+                'max' => self::nullableString($field, 'max'),
+                'pattern' => self::nullableString($field, 'pattern'),
+                'pattern_hint' => self::nullableString($field, 'pattern_hint'),
             ], self::records($data, 'custom_fields')),
             successMessage: self::nullableString($data, 'success_message'),
             expiresAt: self::date($data, 'expires_at'),

@@ -10,6 +10,7 @@ use VeliraPay\Enums\Asset;
 use VeliraPay\Enums\Currency;
 use VeliraPay\Enums\PaymentLinkStatus;
 use VeliraPay\Enums\PricingType;
+use VeliraPay\Enums\QuestionType;
 use VeliraPay\Exceptions\ApiException;
 use VeliraPay\Exceptions\ConnectionException;
 use VeliraPay\Page;
@@ -21,9 +22,9 @@ use VeliraPay\Resources\PaymentLink;
 final class PaymentLinkService extends Service
 {
     /**
-     * Create a payment link. A DateTimeInterface given as expires_at is sent as the same moment in UTC, and a YYYY-MM-DD date closes the link at the end of that day.
+     * Create a payment link. A DateTimeInterface given as expires_at is sent as the same moment in UTC, and a YYYY-MM-DD date closes the link at the end of that day. Each of up to ten custom_fields needs only its label: a question without a type is short text, and min and max are strings, such as "1" or "2026-12-31".
      *
-     * @param  array{title: string, pricing_type: PricingType|string, currency: Currency|string, amount?: numeric-string|int|float|null, description?: string|null, suggested_amounts?: list<numeric-string|int|float>|null, min_amount?: numeric-string|int|float|null, max_amount?: numeric-string|int|float|null, accepted_assets?: list<Asset|string>|null, success_url?: string|null, cancel_url?: string|null, collect_name?: bool, require_email?: bool, success_message?: string|null, custom_fields?: list<array{label: string, required: bool}>, expires_at?: DateTimeInterface|string|null, max_payments?: int|null}  $params
+     * @param  array{title: string, pricing_type: PricingType|string, currency: Currency|string, amount?: numeric-string|int|float|null, description?: string|null, suggested_amounts?: list<numeric-string|int|float>|null, min_amount?: numeric-string|int|float|null, max_amount?: numeric-string|int|float|null, accepted_assets?: list<Asset|string>|null, success_url?: string|null, cancel_url?: string|null, collect_name?: bool, require_email?: bool, success_message?: string|null, custom_fields?: list<array{label: string, type?: QuestionType|string, required?: bool, placeholder?: string|null, help?: string|null, options?: list<string>|null, min?: string|null, max?: string|null, pattern?: string|null, pattern_hint?: string|null}>, expires_at?: DateTimeInterface|string|null, max_payments?: int|null}  $params
      *
      * @throws ApiException
      * @throws ConnectionException
@@ -45,9 +46,9 @@ final class PaymentLinkService extends Service
     }
 
     /**
-     * Change any of a payment link's fields. A DateTimeInterface given as expires_at is sent as the same moment in UTC.
+     * Change any of a payment link's fields. A DateTimeInterface given as expires_at is sent as the same moment in UTC, and custom_fields replaces every question the link asks.
      *
-     * @param  array{title?: string, pricing_type?: PricingType|string, currency?: Currency|string, amount?: numeric-string|int|float|null, description?: string|null, suggested_amounts?: list<numeric-string|int|float>|null, min_amount?: numeric-string|int|float|null, max_amount?: numeric-string|int|float|null, accepted_assets?: list<Asset|string>|null, success_url?: string|null, cancel_url?: string|null, collect_name?: bool, require_email?: bool, success_message?: string|null, custom_fields?: list<array{label: string, required: bool}>, expires_at?: DateTimeInterface|string|null, max_payments?: int|null}  $params
+     * @param  array{title?: string, pricing_type?: PricingType|string, currency?: Currency|string, amount?: numeric-string|int|float|null, description?: string|null, suggested_amounts?: list<numeric-string|int|float>|null, min_amount?: numeric-string|int|float|null, max_amount?: numeric-string|int|float|null, accepted_assets?: list<Asset|string>|null, success_url?: string|null, cancel_url?: string|null, collect_name?: bool, require_email?: bool, success_message?: string|null, custom_fields?: list<array{label: string, type?: QuestionType|string, required?: bool, placeholder?: string|null, help?: string|null, options?: list<string>|null, min?: string|null, max?: string|null, pattern?: string|null, pattern_hint?: string|null}>, expires_at?: DateTimeInterface|string|null, max_payments?: int|null}  $params
      *
      * @throws ApiException
      * @throws ConnectionException
