@@ -21,5 +21,4 @@ enum AddressNetwork: string
     case Tron = 'tron';
     case Monero = 'monero';
     case Solana = 'solana';
-    case Lightning = 'lightning';
 }

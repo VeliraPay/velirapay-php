@@ -182,8 +182,6 @@ $velirapay->charges->recordRefund('k3v9x2m7q8wz', [
 
 `asset` takes a `VeliraPay\Enums\Asset` case or its value, such as `'BTC'`. The enum lists every coin the API knows, but not all of them can be paid in at any given time: a coin is only offered while VeliraPay can also pay it out, and a network can be switched off. `$account->acceptedAssets` lists the coins your account takes right now ([Your account](#your-account)); a charge in any other coin throws a `ValidationException`.
 
-A charge in `Asset::BTC_LIGHTNING` is paid with a Lightning invoice rather than to an address: show the customer `$charge->paymentRequest`, the BOLT11 invoice, as a `lightning:` link or a QR code. Its `depositAddress` is the invoice's payment hash, and `paymentRequest` is `null` for every other coin.
-
 TRX and USDT on Tron (`Asset::USDT_TRON`) share deposit addresses, so a customer can pay a charge's address in the other one. When a charge expired or was canceled with nothing in its own coin while the other arrived, VeliraPay quotes it again in the coin that arrived: `asset`, `assetAmount`, `exchangeRate` and `networkSurcharge` then describe that coin, `fiatAmount` stays the same, and `$charge->switchedFrom` keeps the first quote. The transfer waits as a late payment for you to accept. A charge switches once at most, and `switchedFrom` is `null` for every other charge, so read the coin from the charge in front of you rather than the one you created it in.
 
 ```php
@@ -388,7 +386,7 @@ foreach ($velirapay->payouts->summary() as $coin) {
 }
 ```
 
-Under the processing terms charges carry (`$charge->processingTerms`), your share pays the network costs of forwarding it. Where a payout's exact cost is unknown when it is sent, as for ETH and the other EVM chains' own coins, TRX and Lightning routing, an estimate is set aside from your share first, and `$payout->merchantNetworkReserve` follows it: `reserved` is what was set aside, `payoutCost` what forwarding cost (`null` until known), `sweepBudget` and `sweepCost` the later sweep of VeliraPay's fee to its cold wallet, `sweepAvailable` what remains of that budget, `held` what is still held for you, counting open costs at their most, and `residual` what was left unused once every cost was known (`null` until then). The residual stays owed to you and is recorded, not sent back automatically. `merchantNetworkReserve` is `null` for older charges, Bitcoin-family coins, USDT and USDC forwarders and payouts not yet sent, and webhooks carry it too.
+Under the processing terms charges carry (`$charge->processingTerms`), your share pays the network costs of forwarding it. Where a payout's exact cost is unknown when it is sent, as for ETH and the other EVM chains' own coins and TRX, an estimate is set aside from your share first, and `$payout->merchantNetworkReserve` follows it: `reserved` is what was set aside, `payoutCost` what forwarding cost (`null` until known), `sweepBudget` and `sweepCost` the later sweep of VeliraPay's fee to its cold wallet, `sweepAvailable` what remains of that budget, `held` what is still held for you, counting open costs at their most, and `residual` what was left unused once every cost was known (`null` until then). The residual stays owed to you and is recorded, not sent back automatically. `merchantNetworkReserve` is `null` for older charges, Bitcoin-family coins, USDT and USDC forwarders and payouts not yet sent, and webhooks carry it too.
 
 ## Events
 

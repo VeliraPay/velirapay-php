@@ -32,7 +32,7 @@ final class ConstantsTest extends TestCase
     {
         yield 'currencies' => [Currency::class, ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'CHF', 'TRY']];
         yield 'member roles' => [MemberRole::class, ['owner', 'admin', 'finance', 'support', 'viewer']];
-        yield 'address networks' => [AddressNetwork::class, ['bitcoin', 'litecoin', 'dogecoin', 'bitcoincash', 'evm', 'bsc', 'base', 'arbitrum', 'polygon', 'tron', 'monero', 'solana', 'lightning']];
+        yield 'address networks' => [AddressNetwork::class, ['bitcoin', 'litecoin', 'dogecoin', 'bitcoincash', 'evm', 'bsc', 'base', 'arbitrum', 'polygon', 'tron', 'monero', 'solana']];
         yield 'checkout appearances' => [CheckoutAppearance::class, ['auto', 'light', 'dark']];
         yield 'webhook delivery statuses' => [WebhookDeliveryStatus::class, ['pending', 'succeeded', 'failed']];
         yield 'plan names' => [PlanName::class, ['free', 'pro']];

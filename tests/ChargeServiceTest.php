@@ -108,7 +108,6 @@ final class ChargeServiceTest extends TestCase
         $this->assertEquals(new DateTimeImmutable('2026-09-21T14:30:00Z'), $charge->refunds[0]->createdAt);
         $this->assertSame('60000', $charge->exchangeRate);
         $this->assertSame('bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', $charge->depositAddress);
-        $this->assertNull($charge->paymentRequest);
         $this->assertCount(1, $charge->transactions);
         $this->assertSame(3, $charge->transactions[0]->confirmations);
         $this->assertSame(2, $charge->transactions[0]->requiredConfirmations);
@@ -177,21 +176,6 @@ final class ChargeServiceTest extends TestCase
         $this->assertSame(Asset::USDT_TRON->value, $charge->asset);
         $this->assertSame('152.5', $charge->assetAmount);
         $this->assertSame('2.5', $charge->networkSurcharge);
-        $this->assertNull($charge->paymentRequest);
-    }
-
-    public function test_a_lightning_charge_reads_its_invoice(): void
-    {
-        $invoice = 'lnbc2500u1pjq8w4xpp5qy9nkv7r0v4e5n2s7a3xg6m8d0l2c4f6h8j0k2m4n6p8r0t2v4x6z8sdqqcqzzsxqyz5vq';
-        $hash = 'a3f1c9e2b7d4058f6e1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f70';
-        $this->http->json(['data' => ['asset' => 'BTC_LIGHTNING', 'deposit_address' => $hash, 'payment_request' => $invoice] + self::fixture('charge')]);
-
-        $charge = $this->client()->charges->retrieve('k3v9x2m7q8wz');
-
-        $this->assertSame(Asset::BTC_LIGHTNING->value, $charge->asset);
-        $this->assertSame($hash, $charge->depositAddress);
-        $this->assertSame($invoice, $charge->paymentRequest);
-        $this->assertNull($charge->networkSurcharge);
     }
 
     public function test_a_charge_quoted_again_in_the_coin_that_arrived_keeps_its_first_quote(): void

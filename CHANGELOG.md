@@ -2,6 +2,10 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+- `Asset::BTC_LIGHTNING`, `AddressNetwork::Lightning` and `Charge::$paymentRequest`, with its argument in `Charge`'s constructor, are gone, because VeliraPay no longer offers Bitcoin over Lightning. The API never returned them for anyone, since no account ever had Lightning switched on.
+
 ## 0.6.12 - 2026-11-15
 
 - An invoice must name its customer: `invoices->create()` needs `customer_name`, `customer_email` or both, and without either the API refuses it with a `ValidationException` on `customer_name` and creates nothing. A name alone, such as the buyer's username on your site, is enough, so one invoice per order still works as a checkout where the buyer picks the coin. `$invoice->customerName` is `null` for an invoice given only an email, and `$invoice->customerEmail` for one given only a name, which cannot be sent or reminded. The types are unchanged, and the README now shows it.

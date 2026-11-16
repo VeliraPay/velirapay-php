@@ -93,9 +93,9 @@ final class AssetServiceTest extends TestCase
         $this->assertSame('2.5', $tether->networkSurcharge);
     }
 
-    public function test_lightning_and_the_own_coins_of_base_arbitrum_and_polygon_are_known(): void
+    public function test_the_own_coins_of_base_arbitrum_and_polygon_are_known(): void
     {
-        foreach ([Asset::BTC_LIGHTNING, Asset::ETH_BASE, Asset::ETH_ARBITRUM, Asset::POL] as $asset) {
+        foreach ([Asset::ETH_BASE, Asset::ETH_ARBITRUM, Asset::POL] as $asset) {
             $this->assertSame($asset, SupportedAsset::fromArray(['id' => $asset->value])->asset());
         }
     }
