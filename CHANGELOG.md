@@ -2,7 +2,7 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.6.13 - 2026-11-17
 
 - Typed checkout questions. `paymentLinks->create()` and `update()` take, for each of up to ten `custom_fields`, a `type` (a `QuestionType` case or its value: `text`, `textarea`, `number`, `email`, `phone`, `url`, `date`, `select`, `checkbox` or `country`), a `placeholder`, a `help` line, a select's `options`, `min` and `max` as strings, and for text a `pattern` with its `pattern_hint`. Only `label` is needed now: `['label' => …, 'required' => …]` alone is still a short text question, as before.
 - `$link->customFields` reads every setting back, in that shape: `type` is `"text"` for a link saved before types, and the settings a question does not use are `null`. `$charge->customFields` answers, from the API and in webhooks, carry the question's `type` too, `"text"` for details given when creating the charge or kept before types; `value` stays a string. Both arrays gain keys, so code comparing them whole needs the new ones.
