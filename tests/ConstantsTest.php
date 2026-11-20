@@ -54,9 +54,16 @@ final class ConstantsTest extends TestCase
 
     public function test_every_activity_action_is_named_the_newest_included(): void
     {
-        $this->assertCount(55, ActivityAction::cases());
+        $this->assertCount(62, ActivityAction::cases());
         $this->assertSame(ActivityAction::SecondFactorRequirementChanged, ActivityAction::from('team.second_factor_requirement_changed'));
         $this->assertSame(ActivityAction::SocialAccountDisconnected, ActivityAction::from('auth.social_disconnected'));
+        $this->assertSame(ActivityAction::TeamCreated, ActivityAction::from('team.created'));
+        $this->assertSame(ActivityAction::TeamDeleted, ActivityAction::from('team.deleted'));
+        $this->assertSame(ActivityAction::AccountDeleted, ActivityAction::from('auth.account_deleted'));
+        $this->assertSame(ActivityAction::RecoveryCodesRegenerated, ActivityAction::from('auth.recovery_codes_regenerated'));
+        $this->assertSame(ActivityAction::RecoveryCodeUsed, ActivityAction::from('auth.recovery_code_used'));
+        $this->assertSame(ActivityAction::DataExported, ActivityAction::from('data.exported'));
+        $this->assertSame(ActivityAction::PersonalDataExported, ActivityAction::from('auth.data_exported'));
     }
 
     public function test_an_owner_is_never_given_through_the_api(): void

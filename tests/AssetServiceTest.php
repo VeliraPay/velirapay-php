@@ -99,4 +99,10 @@ final class AssetServiceTest extends TestCase
             $this->assertSame($asset, SupportedAsset::fromArray(['id' => $asset->value])->asset());
         }
     }
+
+    public function test_solana_stablecoins_return_their_asset_cases(): void
+    {
+        $this->assertSame(Asset::USDT_SOLANA, SupportedAsset::fromArray(['id' => 'USDT_SOLANA'])->asset());
+        $this->assertSame(Asset::USDC_SOLANA, SupportedAsset::fromArray(['id' => 'USDC_SOLANA'])->asset());
+    }
 }

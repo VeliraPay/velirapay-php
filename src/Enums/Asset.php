@@ -33,4 +33,6 @@ enum Asset: string
     case ETH_BASE = 'ETH_BASE';
     case ETH_ARBITRUM = 'ETH_ARBITRUM';
     case POL = 'POL';
+    case USDT_SOLANA = 'USDT_SOLANA';
+    case USDC_SOLANA = 'USDC_SOLANA';
 }
