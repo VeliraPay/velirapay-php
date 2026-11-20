@@ -64,4 +64,11 @@ enum ActivityAction: string
     case SanctionsReturnRequested = 'sanctions.return_requested';
     case SocialAccountConnected = 'auth.social_connected';
     case SocialAccountDisconnected = 'auth.social_disconnected';
+    case TeamCreated = 'team.created';
+    case TeamDeleted = 'team.deleted';
+    case AccountDeleted = 'auth.account_deleted';
+    case RecoveryCodesRegenerated = 'auth.recovery_codes_regenerated';
+    case RecoveryCodeUsed = 'auth.recovery_code_used';
+    case DataExported = 'data.exported';
+    case PersonalDataExported = 'auth.data_exported';
 }
