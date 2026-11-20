@@ -729,6 +729,7 @@ Add an endpoint in the dashboard under **Developers → Webhooks** and copy its 
 `Webhook::constructEvent()` checks the signature and parses the body. Pass it the **raw** body: a body decoded and encoded again no longer matches its signature.
 
 ```php
+use VeliraPay\Exceptions\InvalidArgumentException;
 use VeliraPay\Exceptions\SignatureVerificationException;
 use VeliraPay\Webhooks\Webhook;
 
@@ -738,15 +739,21 @@ $signature = $_SERVER['HTTP_X_VELIRAPAY_SIGNATURE'] ?? null;
 
 try {
     $event = Webhook::constructEvent($payload, is_string($signature) ? $signature : null, $secret);
-} catch (SignatureVerificationException $exception) {
+} catch (SignatureVerificationException|InvalidArgumentException) {
     http_response_code(400);
     exit;
 }
 
 // Sent when the endpoint is added or moved: it receives nothing else until it answers.
 if ($event->isVerification()) {
+    $challenge = $event->challengeResponse();
+    if ($challenge === null) {
+        http_response_code(400);
+        exit;
+    }
+
     header('Content-Type: application/json');
-    echo $event->challengeResponse();
+    echo $challenge;
     exit;
 }
 
@@ -774,8 +781,11 @@ switch ($event->type) {
         break;
 }
 
-http_response_code(200);
+http_response_code(503);
+exit('Add durable event handling before accepting payments.');
 ```
+
+The receiver answers challenges and dashboard samples, but returns 503 for payment events until you add durable handling. Check the mode, expected charge, amount and currency, and store the event with its deduplication key before replacing that response with a 2xx.
 
 In Laravel, the route has to be left out of CSRF protection. The simplest way is to register it in `routes/api.php`, which has none (`php artisan install:api` creates the file), and read the body with `$request->getContent()`:
 
@@ -783,6 +793,7 @@ In Laravel, the route has to be left out of CSRF protection. The simplest way is
 // routes/api.php, so the endpoint is https://your-app.example/api/webhooks/velirapay
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use VeliraPay\Exceptions\InvalidArgumentException;
 use VeliraPay\Exceptions\SignatureVerificationException;
 use VeliraPay\Webhooks\Webhook;
 
@@ -793,12 +804,17 @@ Route::post('/webhooks/velirapay', function (Request $request) {
             $request->header(Webhook::SIGNATURE_HEADER),
             config('services.velirapay.webhook_secret'),
         );
-    } catch (SignatureVerificationException) {
+    } catch (SignatureVerificationException|InvalidArgumentException) {
         abort(400);
     }
 
     if ($event->isVerification()) {
-        return response()->json(['challenge' => $event->challenge()]);
+        $challenge = $event->challenge();
+        if ($challenge === null) {
+            abort(400);
+        }
+
+        return response()->json(['challenge' => $challenge]);
     }
 
     if ($event->test) {
@@ -864,7 +880,7 @@ A failed request throws an exception carrying the API's message:
 | `ValidationException` | The request has invalid fields (422). `errors()` lists them, such as `coupon` for a coupon that cannot be used. An invoice created with neither `customer_name` nor `customer_email` is refused on `customer_name`. An invoice sent, or created with `send_email`, without a customer email is refused this way, on `customer_email`, and so, in test mode, is one emailed to someone outside your account. |
 | `RateLimitException` | Too many requests (429), including an invoice emailed again within 10 minutes, more than 100 emails to customers an hour, and more than 300 charges created in 30 minutes, or 10 emails and 30 charges until one of the owner's accounts has been paid in live mode. `retryAfter()` says how many seconds to wait. |
 | `ServerException` | VeliraPay had a problem (5xx), such as no exchange rate being available to create a charge with (503). |
-| `InvalidRequestException` | Any other 4xx, such as an `Idempotency-Key` longer than 255 characters (400). |
+| `InvalidRequestException` | Any other 4xx, such as an `Idempotency-Key` longer than 255 bytes (400). |
 | `UnexpectedResponseException` | A successful answer the library cannot read, such as a page that is not JSON from something between you and the API. |
 | `ConnectionException` | The API could not be reached, or its answer could not be read, after the [retries](#retries-and-idempotency). `idempotencyKey` is the key a write was sent with, to repeat it safely. |
 | `SignatureVerificationException` | A [webhook](#webhooks)'s signature is missing, does not match the secret, or is too old. |
@@ -907,9 +923,9 @@ What the API does with a key:
 - Successful (2xx) responses are replayed for 24 hours to requests repeating the key. A request that failed stores nothing, so repeating it runs it again.
 - Reuse a key only to retry the same request, and give a new attempt a new key: a charge replacing one that expired, created under the first one's key, would get the expired charge back for a day. Hence keys such as `order-1042-attempt-1` rather than the bare order number.
 - An answer that carries a new API key or webhook signing secret is never stored. Creating a key or endpoint, or rotating an endpoint's secret, succeeds once; repeating its idempotency key throws a `ConflictException` saying the request already succeeded, whose `wasReplayed()` is `true`. The library repeats such a request itself when its answer is lost, so that is how you learn it went through: the key or endpoint was created, or the secret rotated, but the secret is gone. List the keys or endpoints, revoke that key or rotate that endpoint's secret, and try again under a new idempotency key, rather than blindly repeating the request.
-- A key is at most 255 characters; a longer one is refused with a 400.
+- The API accepts a key of at most 255 bytes; a longer one is refused with a 400. Use printable ASCII for compatibility with HTTP clients.
 - A key covers one account, one mode, one HTTP method and one path. Every API key of that account and mode shares it, so two servers using different API keys still create one charge for one idempotency key.
-- Reusing a key with a different body or query string throws a `ConflictException`.
+- Reusing a key with a different serialized JSON body or query string throws a `ConflictException`. Keep the body bytes unchanged, including property order and whitespace, even when the decoded values would be the same.
 - A request holds its key for up to 60 seconds while it is being processed. Another one with the same key gets a 409 with `Retry-After: 1` in that time, which the library waits out and retries.
 
 When the API still cannot be reached, or its answer read, after the retries, a `ConnectionException` is thrown. A write may have been carried out all the same, so `$exception->idempotencyKey` holds the key it was sent with, the one the library made up included: repeating the call with that key is safe, and gets the first request's response if it succeeded.
