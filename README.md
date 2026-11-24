@@ -785,7 +785,7 @@ http_response_code(503);
 exit('Add durable event handling before accepting payments.');
 ```
 
-The receiver answers challenges and dashboard samples, but returns 503 for payment events until you add durable handling. Check the mode, expected charge, amount and currency, and store the event with its deduplication key before replacing that response with a 2xx.
+The receiver answers challenges and dashboard samples, but returns 503 for payment events until you add durable handling. Check the mode, expected charge, amount and currency, and store the event with its deduplication key before replacing that response with a 2xx. Before fulfilling, also make sure the charge is the one you saved for the order and that its `acceptedAt` is null: a short or late payment you accepted as paid in the dashboard, perhaps only to refund it, is yours to decide on. A delivery first made before 24 November 2026 has no such field, so read the charge from the API when it is missing.
 
 In Laravel, the route has to be left out of CSRF protection. The simplest way is to register it in `routes/api.php`, which has none (`php artisan install:api` creates the file), and read the body with `$request->getContent()`:
 
@@ -920,13 +920,13 @@ $velirapay->lastResponse()?->wasReplayed(); // true when the API answered from a
 
 What the API does with a key:
 
-- Successful (2xx) responses are replayed for 24 hours to requests repeating the key. A request that failed stores nothing, so repeating it runs it again.
+- Successful (2xx) responses are replayed for 24 hours to requests repeating the key. A request the API refused (4xx), or that failed before anything was saved, stores nothing, so repeating it runs it again. One that failed on the API's side after something was saved, or whose answer never came back, keeps its key: a repeat is answered with a conflict (409) that is not a replay, so read the object and send the request under a new key.
 - Reuse a key only to retry the same request, and give a new attempt a new key: a charge replacing one that expired, created under the first one's key, would get the expired charge back for a day. Hence keys such as `order-1042-attempt-1` rather than the bare order number.
 - An answer that carries a new API key or webhook signing secret is never stored. Creating a key or endpoint, or rotating an endpoint's secret, succeeds once; repeating its idempotency key throws a `ConflictException` saying the request already succeeded, whose `wasReplayed()` is `true`. The library repeats such a request itself when its answer is lost, so that is how you learn it went through: the key or endpoint was created, or the secret rotated, but the secret is gone. List the keys or endpoints, revoke that key or rotate that endpoint's secret, and try again under a new idempotency key, rather than blindly repeating the request.
 - The API accepts a key of at most 255 bytes; a longer one is refused with a 400. Use printable ASCII for compatibility with HTTP clients.
 - A key covers one account, one mode, one HTTP method and one path. Every API key of that account and mode shares it, so two servers using different API keys still create one charge for one idempotency key.
 - Reusing a key with a different serialized JSON body or query string throws a `ConflictException`. Keep the body bytes unchanged, including property order and whitespace, even when the decoded values would be the same.
-- A request holds its key for up to 60 seconds while it is being processed. Another one with the same key gets a 409 with `Retry-After: 1` in that time, which the library waits out and retries.
+- A request holds its key for up to three minutes while it is being processed. Another one with the same key gets a 409 with `Retry-After: 1` in that time, which the library waits out and retries.
 
 When the API still cannot be reached, or its answer read, after the retries, a `ConnectionException` is thrown. A write may have been carried out all the same, so `$exception->idempotencyKey` holds the key it was sent with, the one the library made up included: repeating the call with that key is safe, and gets the first request's response if it succeeded.
 
