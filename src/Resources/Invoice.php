@@ -17,7 +17,7 @@ final class Invoice extends ApiResource
      *
      * @param  array<string, mixed>  $attributes
      * @param  list<InvoiceItem>  $items
-     * @param  list<array{id: string, status: string, asset: string}>  $charges
+     * @param  list<array{id: string, status: string, asset: string, paid_at: DateTimeImmutable|null, accepted_at: DateTimeImmutable|null}>  $charges
      */
     public function __construct(
         array $attributes,
@@ -47,7 +47,7 @@ final class Invoice extends ApiResource
         public readonly string $hostedUrl,
         /** The printable invoice; null in a webhook from before VeliraPay sent it. */
         public readonly ?string $documentUrl,
-        /** The charges made to pay the invoice, one per coin the customer tried. */
+        /** The charges made to pay the invoice, one per coin the customer tried; accepted_at is set when the charge became paid because you accepted a short or late payment. */
         public readonly array $charges,
         /** When the invoice was emailed. */
         public readonly ?DateTimeImmutable $sentAt,
@@ -97,6 +97,8 @@ final class Invoice extends ApiResource
                 'id' => self::string($charge, 'id', self::string($charge, 'code')),
                 'status' => self::string($charge, 'status'),
                 'asset' => self::string($charge, 'asset'),
+                'paid_at' => self::date($charge, 'paid_at'),
+                'accepted_at' => self::date($charge, 'accepted_at'),
             ], self::records($data, 'charges')),
             sentAt: self::date($data, 'sent_at'),
             viewedAt: self::date($data, 'viewed_at'),

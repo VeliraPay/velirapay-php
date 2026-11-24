@@ -111,7 +111,7 @@ final class InvoiceServiceTest extends TestCase
         $this->assertSame('https://example.com/orders/1042', $invoice->successUrl);
         $this->assertNull($invoice->cancelUrl);
         $this->assertSame('Thank you, your order is on its way.', $invoice->successMessage);
-        $this->assertSame([['id' => 'm2q7w4e9r1ty', 'status' => 'expired', 'asset' => 'ETH']], $invoice->charges);
+        $this->assertSame([['id' => 'm2q7w4e9r1ty', 'status' => 'expired', 'asset' => 'ETH', 'paid_at' => null, 'accepted_at' => null]], $invoice->charges);
         $this->assertEquals(new DateTimeImmutable('2026-09-21T08:00:00Z'), $invoice->sentAt);
         $this->assertNull($invoice->paidAt);
     }

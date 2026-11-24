@@ -215,6 +215,9 @@ final class WebhookTest extends TestCase
         $this->assertNull($invoice->successMessage);
         $this->assertEquals(new DateTimeImmutable('2026-10-31T23:59:59Z'), $invoice->expiresAt);
         $this->assertSame(['m2q7w4e9r1ty', 'z8x6c4v2b0nm'], array_column($invoice->charges, 'id'));
+        $this->assertNull($invoice->charges[0]['accepted_at']);
+        $this->assertEquals(new DateTimeImmutable('2026-09-22T16:40:02Z'), $invoice->charges[1]['paid_at']);
+        $this->assertEquals(new DateTimeImmutable('2026-09-22T16:40:02Z'), $invoice->charges[1]['accepted_at']);
         $this->assertEquals(new DateTimeImmutable('2026-10-15T00:00:00Z'), $invoice->dueAt);
     }
 

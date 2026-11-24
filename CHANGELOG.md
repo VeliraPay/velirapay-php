@@ -2,6 +2,13 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## 0.6.15 - 2026-11-24
+
+- Added the activity actions `auth.browser_signed_out`, `auth.email_change_undone`, `claude.linked` and `claude.unlinked`, all four among the sensitive ones.
+- `$charge->acceptedAt`, and `paid_at` and `accepted_at` on each of `$invoice->charges`, in the API and in webhooks: when the merchant accepted a short or late payment as paid, which is how the charge became paid, and null when the payment itself covered it. Check it before fulfilling an order, since a payment may be accepted only to refund it.
+- Each entry of `$invoice->charges` gains the `paid_at` and `accepted_at` keys, so code comparing the entries whole needs the new ones.
+- The unused part of a payout's network reserve is described as kept as part of the payout's network cost, which is what the settlement terms now say for every payment.
+
 ## 0.6.14 - 2026-11-20
 
 - `Asset` includes `USDT_SOLANA` and `USDC_SOLANA`. `ActivityAction` includes team creation and deletion, account deletion, recovery code regeneration and use, and both account and personal data exports.

@@ -46,8 +46,10 @@ enum ActivityAction: string
     case TwoFactorEnabled = 'auth.two_factor_enabled';
     case TwoFactorDisabled = 'auth.two_factor_disabled';
     case SignedOutElsewhere = 'auth.signed_out_elsewhere';
+    case BrowserSignedOut = 'auth.browser_signed_out';
     case TwoFactorFailed = 'auth.two_factor_failed';
     case EmailChanged = 'auth.email_changed';
+    case EmailChangeUndone = 'auth.email_change_undone';
     case PasskeyAdded = 'auth.passkey_added';
     case PasskeyRemoved = 'auth.passkey_removed';
     case CouponCreated = 'coupon.created';
@@ -71,4 +73,6 @@ enum ActivityAction: string
     case RecoveryCodeUsed = 'auth.recovery_code_used';
     case DataExported = 'data.exported';
     case PersonalDataExported = 'auth.data_exported';
+    case ClaudeLinked = 'claude.linked';
+    case ClaudeUnlinked = 'claude.unlinked';
 }

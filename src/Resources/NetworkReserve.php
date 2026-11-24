@@ -28,7 +28,7 @@ final class NetworkReserve extends ApiResource
         public readonly string $sweepAvailable,
         /** What is still held for the merchant, counting every cost not yet known at its most. */
         public readonly string $held,
-        /** The unused reserve once every cost is known, or null while costs are open. Settlement terms determine who keeps it. */
+        /** The unused reserve once every cost is known, or null while costs are open. It is not sent back: it is kept as part of the payout's network cost. */
         public readonly ?string $residual,
     ) {
         parent::__construct($attributes);

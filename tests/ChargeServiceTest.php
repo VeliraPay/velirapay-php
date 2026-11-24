@@ -134,6 +134,7 @@ final class ChargeServiceTest extends TestCase
         $this->assertSame('https://velirapay.com/c/k3v9x2m7q8wz/receipt', $charge->receiptUrl);
         $this->assertEquals(new DateTimeImmutable('2026-09-20T10:25:00Z'), $charge->expiresAt);
         $this->assertEquals(new DateTimeImmutable('2026-09-20T10:05:41Z'), $charge->paidAt);
+        $this->assertNull($charge->acceptedAt);
         $this->assertEquals(new DateTimeImmutable('2026-09-20T09:55:00Z'), $charge->createdAt);
     }
 

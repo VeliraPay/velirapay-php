@@ -105,6 +105,8 @@ final class Charge extends ApiResource
         public readonly ?OriginalQuote $switchedFrom = null,
         /** The processing fee and forwarding limit fixed when the charge was quoted; null for older charges and VeliraPay's own billing. */
         public readonly ?ProcessingTerms $processingTerms = null,
+        /** When you accepted a short or late payment as paid, which is how the charge became paid; null for a charge the payment itself covered. */
+        public readonly ?DateTimeImmutable $acceptedAt = null,
     ) {
         parent::__construct($attributes);
 
@@ -168,6 +170,7 @@ final class Charge extends ApiResource
             invoiceNumber: self::nullableString(self::map($data, 'invoice'), 'number'),
             switchedFrom: self::object($data, 'switched_from', OriginalQuote::fromArray(...)),
             processingTerms: self::object($data, 'processing_terms', ProcessingTerms::fromArray(...)),
+            acceptedAt: self::date($data, 'accepted_at'),
         );
     }
 
