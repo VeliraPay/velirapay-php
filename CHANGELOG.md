@@ -2,7 +2,7 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.6.16 - 2026-11-26
 
 - Refund requests: `$velirapay->charges->startRefund()` sets part of a paid charge aside and, without an address, emails the customer a link to give one, then `refundRequests()`, `retrieveRefundRequest()`, `setRefundAddress()`, `markRefundSent()`, `completeRefund()`, `resendRefundLink()` and `cancelRefund()` follow it to the refund, all with the `charges:refund` permission. They return a `RefundRequest`, whose `status` is a `RefundRequestStatus` value.
 - `Refund` gains `number` and `creditNoteUrl` (its credit note), `fiatAmount` (its value at the charge's locked rate) and `confirmedOnChainAt` (null when it was recorded on your word).
