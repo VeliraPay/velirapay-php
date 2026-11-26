@@ -19,9 +19,9 @@ use VeliraPay\Resources\Invoice;
 final class InvoiceService extends Service
 {
     /**
-     * Create an invoice, for a total or a list of items, addressed to the customer by customer_name, customer_email or both, and optionally email it to them, which needs customer_email. A DateTimeInterface given as due_at is sent as the day it falls on where it is, and one given as expires_at as the same moment in UTC; a YYYY-MM-DD date as expires_at closes the invoice at the end of that day.
+     * Create an invoice, for a total or a list of items, each optionally taxed at its own tax_rate, with a discount_percent or a discount_amount taken off the items before tax, addressed to the customer by customer_name, customer_email or both, and optionally email it to them, which needs customer_email. A DateTimeInterface given as due_at is sent as the day it falls on where it is, and one given as expires_at as the same moment in UTC; a YYYY-MM-DD date as expires_at closes the invoice at the end of that day.
      *
-     * @param  array{customer_name?: string|null, customer_email?: string|null, currency: Currency|string, amount?: numeric-string|int|float, items?: list<array{description: string, quantity: numeric-string|int|float, unit_amount: numeric-string|int|float}>, memo?: string|null, due_at?: DateTimeInterface|string|null, expires_at?: DateTimeInterface|string|null, success_url?: string|null, cancel_url?: string|null, success_message?: string|null, send_email?: bool}  $params
+     * @param  array{customer_name?: string|null, customer_email?: string|null, currency: Currency|string, amount?: numeric-string|int|float, items?: list<array{description: string, quantity: numeric-string|int|float, unit_amount: numeric-string|int|float, tax_rate?: numeric-string|int|float|null}>, discount_percent?: numeric-string|int|float|null, discount_amount?: numeric-string|int|float|null, memo?: string|null, due_at?: DateTimeInterface|string|null, expires_at?: DateTimeInterface|string|null, success_url?: string|null, cancel_url?: string|null, success_message?: string|null, send_email?: bool}  $params
      *
      * @throws ApiException
      * @throws ConnectionException
@@ -32,7 +32,7 @@ final class InvoiceService extends Service
             $params['due_at'] = $params['due_at']->format('Y-m-d');
         }
 
-        return Invoice::fromArray($this->request('POST', '/v1/invoices', self::decimals($params, 'amount', 'items'), $idempotencyKey));
+        return Invoice::fromArray($this->request('POST', '/v1/invoices', self::decimals($params, 'amount', 'items', 'discount_percent', 'discount_amount'), $idempotencyKey));
     }
 
     /**

@@ -2,6 +2,13 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+- Refund requests: `$velirapay->charges->startRefund()` sets part of a paid charge aside and, without an address, emails the customer a link to give one, then `refundRequests()`, `retrieveRefundRequest()`, `setRefundAddress()`, `markRefundSent()`, `completeRefund()`, `resendRefundLink()` and `cancelRefund()` follow it to the refund, all with the `charges:refund` permission. They return a `RefundRequest`, whose `status` is a `RefundRequestStatus` value.
+- `Refund` gains `number` and `creditNoteUrl` (its credit note), `fiatAmount` (its value at the charge's locked rate) and `confirmedOnChainAt` (null when it was recorded on your word).
+- Invoices take a `tax_rate` on each item and a `discount_percent` or `discount_amount` on the items, taken off before tax. Until 26 November 2026 the API ignored these three fields, so code that already sent them now bills the taxed, discounted total. `Invoice` gains `subtotal`, `discount`, `discountPercent` and `tax`, and `InvoiceItem` gains `taxRate`, all null for an invoice without a breakdown.
+- Added the activity actions `refund.requested`, `refund.canceled`, `accounting.connected` and `accounting.disconnected`.
+
 ## 0.6.15 - 2026-11-24
 
 - Added the activity actions `auth.browser_signed_out`, `auth.email_change_undone`, `claude.linked` and `claude.unlinked`, all four among the sensitive ones.

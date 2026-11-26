@@ -67,6 +67,14 @@ final class Invoice extends ApiResource
         public readonly ?DateTimeImmutable $expiresAt = null,
         /** What the customer is told once they have paid, or null when the account's own message applies. */
         public readonly ?string $successMessage = null,
+        /** What the items came to before the discount and tax, or null for an invoice whose items carry neither. */
+        public readonly ?string $subtotal = null,
+        /** What the discount took off the items before tax, or null when there is none. */
+        public readonly ?string $discount = null,
+        /** The percentage the discount took off, or null for a fixed discount or none. */
+        public readonly ?string $discountPercent = null,
+        /** The tax added on top of the items at their tax rates, after the discount, or null for an invoice without a breakdown. */
+        public readonly ?string $tax = null,
     ) {
         parent::__construct($attributes);
     }
@@ -109,6 +117,10 @@ final class Invoice extends ApiResource
             cancelUrl: self::nullableString($data, 'cancel_url'),
             expiresAt: self::date($data, 'expires_at'),
             successMessage: self::nullableString($data, 'success_message'),
+            subtotal: self::nullableString($data, 'subtotal'),
+            discount: self::nullableString($data, 'discount'),
+            discountPercent: self::nullableString($data, 'discount_percent'),
+            tax: self::nullableString($data, 'tax'),
         );
     }
 

@@ -178,6 +178,27 @@ $velirapay->charges->recordRefund('k3v9x2m7q8wz', [
 ]);
 ```
 
+To have VeliraPay ask the customer where a refund goes, start a refund request instead. The amount is set aside at once, the customer is emailed a link to give the address when the charge has their email (`$refundRequest->addressUrl` is that link either way), and once you send the coins from your own wallet the address is watched and the refund recorded, with `charge.refunded`, when the transfer confirms:
+
+```php
+$refundRequest = $velirapay->charges->startRefund('k3v9x2m7q8wz', ['amount' => '0.0005', 'reason' => 'Returned item'], 'refund-1042-1');
+
+// Or give the address the customer told you, and nobody is emailed:
+// $velirapay->charges->startRefund('k3v9x2m7q8wz', ['amount' => '0.0005', 'address' => 'bc1q…']);
+
+$velirapay->charges->setRefundAddress('k3v9x2m7q8wz', $refundRequest->id, ['address' => 'bc1q…']);
+$velirapay->charges->markRefundSent('k3v9x2m7q8wz', $refundRequest->id, ['txid' => '7d1c5e9a…']); // looks at the chain now
+$velirapay->charges->completeRefund('k3v9x2m7q8wz', $refundRequest->id); // on your word, when the chain cannot show it
+$velirapay->charges->resendRefundLink('k3v9x2m7q8wz', $refundRequest->id);
+$velirapay->charges->cancelRefund('k3v9x2m7q8wz', $refundRequest->id);
+
+foreach ($velirapay->charges->refundRequests('k3v9x2m7q8wz')->data as $refundRequest) {
+    echo $refundRequest->status; // a RefundRequestStatus value
+}
+```
+
+Every refund request call needs the `charges:refund` permission, reads included. A recorded refund carries its credit note's `number` and `creditNoteUrl`, its `fiatAmount` at the charge's locked rate, and `confirmedOnChainAt`, which is `null` when it was recorded on your word.
+
 `send()` needs a customer email and only works while the charge is pending, or it throws a `ConflictException`. Creating a charge with `send_email` but no customer email throws a `ValidationException` on `customer_email` and creates nothing. A charge can be emailed once every 10 minutes, and the emails count towards the limits under [Invoices](#invoices). In test mode, charge emails can only go to members of your account.
 
 `asset` takes a `VeliraPay\Enums\Asset` case or its value, such as `'BTC'`. The enum lists every coin the API knows, but not all of them can be paid in at any given time: a coin is only offered while VeliraPay can also pay it out, and a network can be switched off. `$account->acceptedAssets` lists the coins your account takes right now ([Your account](#your-account)); a charge in any other coin throws a `ValidationException`.
@@ -297,9 +318,10 @@ $invoice = $velirapay->invoices->create([
     'customer_email' => 'grace@example.com',
     'currency' => 'USD',
     'items' => [
-        ['description' => 'Consulting', 'quantity' => '10', 'unit_amount' => '100.00'],
+        ['description' => 'Consulting', 'quantity' => '10', 'unit_amount' => '100.00', 'tax_rate' => '20'],
         ['description' => 'Hosting', 'quantity' => '1', 'unit_amount' => '250.00'],
     ],
+    'discount_percent' => '10', // or discount_amount; taken off the items before tax
     'due_at' => new DateTimeImmutable('+14 days'),
     'expires_at' => new DateTimeImmutable('+30 days'), // optional: no new payment after this
     'success_url' => 'https://example.com/orders/1042',
@@ -318,7 +340,7 @@ $overdue = $velirapay->invoices->list(['overdue' => true]);
 $hers = $velirapay->invoices->list(['search' => 'grace@example.com']);
 ```
 
-Pass `amount` instead of `items` to bill a single total.
+Pass `amount` instead of `items` to bill a single total. Each item can carry a `tax_rate` in percent, and the items a `discount_percent` or a `discount_amount`, not both, taken off before tax; the invoice's `amount` is then what they come to, and `$invoice->subtotal`, `discount`, `discountPercent` and `tax` give the breakdown, all `null` for an invoice without one. Until 26 November 2026 the API ignored those three fields, so code that already sent them now bills the taxed, discounted total.
 
 An invoice names its customer by `customer_name`, `customer_email` or both, or `create()` throws a `ValidationException` on `customer_name` and creates nothing. A name alone, such as the buyer's username on your site (`'customer_name' => 'buyer_1042'`), is enough. `$invoice->customerName` is `null` for an invoice given only an email, and `customerEmail` for one given only a name. `send_email` needs a `customer_email`, or `create()` throws a `ValidationException` on `customer_email` and creates nothing, and `send()` throws the same for an invoice without one.
 

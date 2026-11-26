@@ -28,6 +28,14 @@ final class Refund extends ApiResource
         public readonly ?string $explorerUrl,
         /** When the refund was recorded. */
         public readonly ?DateTimeImmutable $createdAt,
+        /** The credit note's number, such as CN-0001, counted per account and mode. */
+        public readonly ?string $number = null,
+        /** What the refund is worth in the charge's fiat currency, at the rate the charge was locked at. */
+        public readonly ?string $fiatAmount = null,
+        /** The printable credit note, which the customer can open too. */
+        public readonly ?string $creditNoteUrl = null,
+        /** When the chain showed the transfer landing at the customer's address, or null when it was recorded on your word. */
+        public readonly ?DateTimeImmutable $confirmedOnChainAt = null,
     ) {
         parent::__construct($attributes);
     }
@@ -46,6 +54,10 @@ final class Refund extends ApiResource
             reason: self::nullableString($data, 'reason'),
             explorerUrl: self::nullableString($data, 'explorer_url'),
             createdAt: self::date($data, 'created_at'),
+            number: self::nullableString($data, 'number'),
+            fiatAmount: self::nullableString($data, 'fiat_amount'),
+            creditNoteUrl: self::nullableString($data, 'credit_note_url'),
+            confirmedOnChainAt: self::date($data, 'confirmed_on_chain_at'),
         );
     }
 }

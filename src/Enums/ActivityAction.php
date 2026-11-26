@@ -36,6 +36,8 @@ enum ActivityAction: string
     case ChargeCanceled = 'charge.canceled';
     case ChargeAccepted = 'charge.accepted';
     case RefundRecorded = 'refund.recorded';
+    case RefundRequested = 'refund.requested';
+    case RefundCanceled = 'refund.canceled';
     case InvoiceVoided = 'invoice.voided';
     case PlanPaymentStarted = 'plan.payment_started';
     case SubscriptionCanceled = 'plan.subscription_canceled';
@@ -75,4 +77,6 @@ enum ActivityAction: string
     case PersonalDataExported = 'auth.data_exported';
     case ClaudeLinked = 'claude.linked';
     case ClaudeUnlinked = 'claude.unlinked';
+    case AccountingConnected = 'accounting.connected';
+    case AccountingDisconnected = 'accounting.disconnected';
 }

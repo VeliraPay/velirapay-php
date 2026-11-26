@@ -87,6 +87,31 @@ final class InvoiceServiceTest extends TestCase
         $this->assertSame('350', self::body($this->http->lastRequest())['amount']);
     }
 
+    public function test_an_invoice_is_created_with_tax_and_a_discount_and_reads_its_breakdown(): void
+    {
+        $this->http->json(['data' => [...self::fixture('invoice'), 'subtotal' => '1250.00', 'discount' => '125.00', 'discount_percent' => '10.00', 'tax' => '225.00', 'amount' => '1350.00', 'items' => [
+            ['description' => 'Consulting', 'quantity' => '10', 'unit_amount' => '100.00', 'tax_rate' => '20.00', 'total' => '1000.00'],
+            ['description' => 'Hosting', 'quantity' => '2.5', 'unit_amount' => '100.00', 'tax_rate' => null, 'total' => '250.00'],
+        ]]], 201);
+
+        $invoice = $this->client()->invoices->create([
+            'customer_name' => 'Grace Hopper',
+            'currency' => 'USD',
+            'items' => [['description' => 'Consulting', 'quantity' => 10, 'unit_amount' => '100.00', 'tax_rate' => 20.0], ['description' => 'Hosting', 'quantity' => 2.5, 'unit_amount' => '100.00']],
+            'discount_percent' => 10.0,
+        ]);
+
+        $body = self::body($this->http->lastRequest());
+        $this->assertSame([['description' => 'Consulting', 'quantity' => 10, 'unit_amount' => '100.00', 'tax_rate' => '20'], ['description' => 'Hosting', 'quantity' => '2.5', 'unit_amount' => '100.00']], $body['items']);
+        $this->assertSame('10', $body['discount_percent']);
+        $this->assertSame('1250.00', $invoice->subtotal);
+        $this->assertSame('125.00', $invoice->discount);
+        $this->assertSame('10.00', $invoice->discountPercent);
+        $this->assertSame('225.00', $invoice->tax);
+        $this->assertSame('20.00', $invoice->items[0]->taxRate);
+        $this->assertNull($invoice->items[1]->taxRate);
+    }
+
     public function test_an_invoice_is_read_into_typed_properties(): void
     {
         $this->http->json(['data' => self::fixture('invoice')]);
@@ -111,6 +136,9 @@ final class InvoiceServiceTest extends TestCase
         $this->assertSame('https://example.com/orders/1042', $invoice->successUrl);
         $this->assertNull($invoice->cancelUrl);
         $this->assertSame('Thank you, your order is on its way.', $invoice->successMessage);
+        $this->assertNull($invoice->subtotal);
+        $this->assertNull($invoice->discountPercent);
+        $this->assertNull($invoice->tax);
         $this->assertSame([['id' => 'm2q7w4e9r1ty', 'status' => 'expired', 'asset' => 'ETH', 'paid_at' => null, 'accepted_at' => null]], $invoice->charges);
         $this->assertEquals(new DateTimeImmutable('2026-09-21T08:00:00Z'), $invoice->sentAt);
         $this->assertNull($invoice->paidAt);

@@ -9,6 +9,7 @@ use DateTimeZone;
 use PHPUnit\Framework\Attributes\DataProvider;
 use VeliraPay\Enums\Asset;
 use VeliraPay\Enums\ChargeStatus;
+use VeliraPay\Enums\RefundRequestStatus;
 use VeliraPay\Exceptions\InvalidArgumentException;
 use VeliraPay\Resources\Charge;
 
@@ -499,5 +500,69 @@ final class ChargeServiceTest extends TestCase
         $this->assertSame('POST', $request->getMethod());
         $this->assertSame('/v1/charges/k3v9x2m7q8wz/refunds', $request->getUri()->getPath());
         $this->assertSame(['amount' => '0.0005', 'txid' => 'c1f0e2d3', 'reason' => 'Partial refund'], self::body($request));
+    }
+
+    public function test_a_refund_is_started_and_read_into_typed_properties(): void
+    {
+        $this->http->json(['data' => self::fixture('refund_request')], 201);
+
+        $refundRequest = $this->client()->charges->startRefund('k3v9x2m7q8wz', ['amount' => 0.0005, 'reason' => 'Order canceled'], 'refund-1042-1');
+
+        $request = $this->http->lastRequest();
+        $this->assertSame('POST', $request->getMethod());
+        $this->assertSame('/v1/charges/k3v9x2m7q8wz/refund-requests', $request->getUri()->getPath());
+        $this->assertSame('refund-1042-1', $request->getHeaderLine('Idempotency-Key'));
+        $this->assertSame(['amount' => '0.0005', 'reason' => 'Order canceled'], self::body($request));
+
+        $this->assertSame('r8k2m4q7xw3e', $refundRequest->id);
+        $this->assertSame('k3v9x2m7q8wz', $refundRequest->charge);
+        $this->assertSame(RefundRequestStatus::Refunded->value, $refundRequest->status);
+        $this->assertTrue($refundRequest->isRefunded());
+        $this->assertFalse($refundRequest->isOpen());
+        $this->assertSame('0.0005', $refundRequest->amount);
+        $this->assertSame('customer', $refundRequest->addressGivenBy);
+        $this->assertNull($refundRequest->addressUrl);
+        $this->assertSame(3, $refundRequest->confirmations);
+        $this->assertEquals(new DateTimeImmutable('2026-12-10T09:00:00Z'), $refundRequest->linkExpiresAt);
+        $this->assertNull($refundRequest->canceledAt);
+        $refund = $refundRequest->refund;
+        $this->assertNotNull($refund);
+        $this->assertSame('CN-0007', $refund->number);
+        $this->assertSame('30.00', $refund->fiatAmount);
+        $this->assertSame('https://velirapay.com/c/k3v9x2m7q8wz/credit-notes/CN-0007', $refund->creditNoteUrl);
+        $this->assertEquals(new DateTimeImmutable('2026-11-26T10:00:00Z'), $refund->confirmedOnChainAt);
+    }
+
+    public function test_a_started_refund_is_listed_given_its_address_and_hash_completed_resent_and_canceled(): void
+    {
+        $open = ['data' => [...self::fixture('refund_request'), 'status' => 'awaiting_address', 'refund' => null]];
+
+        $this->http->json(['data' => [$open['data']], 'links' => [], 'meta' => ['current_page' => 1, 'last_page' => 1, 'per_page' => 25, 'total' => 1]])
+            ->json($open)->json($open)->json($open)->json($open)->json($open)->json($open)->json($open);
+
+        $page = $this->client()->charges->refundRequests('k3v9 x2', ['per_page' => 25]);
+        $this->assertTrue($page->data[0]->isOpen());
+        $this->assertNull($page->data[0]->refund);
+        $this->client()->charges->retrieveRefundRequest('k3v9x2m7q8wz', 'r8k2m4q7xw3e');
+        $this->client()->charges->setRefundAddress('k3v9x2m7q8wz', 'r8k2m4q7xw3e', ['address' => 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq']);
+        $this->client()->charges->markRefundSent('k3v9x2m7q8wz', 'r8k2m4q7xw3e', ['txid' => 'c1f0e2d3'], 'sent-1');
+        $this->client()->charges->completeRefund('k3v9x2m7q8wz', 'r8k2m4q7xw3e');
+        $this->client()->charges->completeRefund('k3v9x2m7q8wz', 'r8k2m4q7xw3e', ['txid' => 'c1f0e2d3']);
+        $this->client()->charges->resendRefundLink('k3v9x2m7q8wz', 'r8k2m4q7xw3e');
+        $this->client()->charges->cancelRefund('k3v9x2m7q8wz', 'r8k2m4q7xw3e', 'cancel-1');
+
+        $sent = array_map(static fn ($request): array => [$request->getMethod(), $request->getUri()->getPath(), (string) $request->getBody(), $request->getHeaderLine('Idempotency-Key')], $this->http->requests);
+
+        $this->assertSame([
+            ['GET', '/v1/charges/k3v9%20x2/refund-requests', '', ''],
+            ['GET', '/v1/charges/k3v9x2m7q8wz/refund-requests/r8k2m4q7xw3e', '', ''],
+            ['POST', '/v1/charges/k3v9x2m7q8wz/refund-requests/r8k2m4q7xw3e/address', '{"address":"bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"}', ''],
+            ['POST', '/v1/charges/k3v9x2m7q8wz/refund-requests/r8k2m4q7xw3e/sent', '{"txid":"c1f0e2d3"}', 'sent-1'],
+            ['POST', '/v1/charges/k3v9x2m7q8wz/refund-requests/r8k2m4q7xw3e/complete', '', ''],
+            ['POST', '/v1/charges/k3v9x2m7q8wz/refund-requests/r8k2m4q7xw3e/complete', '{"txid":"c1f0e2d3"}', ''],
+            ['POST', '/v1/charges/k3v9x2m7q8wz/refund-requests/r8k2m4q7xw3e/resend', '', ''],
+            ['POST', '/v1/charges/k3v9x2m7q8wz/refund-requests/r8k2m4q7xw3e/cancel', '', 'cancel-1'],
+        ], $sent);
+        $this->assertSame('per_page=25', $this->http->requests[0]->getUri()->getQuery());
     }
 }

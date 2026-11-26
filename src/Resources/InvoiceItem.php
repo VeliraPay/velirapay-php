@@ -22,8 +22,10 @@ final class InvoiceItem extends ApiResource
         public readonly string $quantity,
         /** The price of one unit, in the invoice's currency. */
         public readonly string $unitAmount,
-        /** The quantity times the unit amount. */
+        /** The quantity times the unit amount, before tax. */
         public readonly string $total,
+        /** The tax rate on the line, in percent, or null when it carries none. */
+        public readonly ?string $taxRate = null,
     ) {
         parent::__construct($attributes);
     }
@@ -41,6 +43,7 @@ final class InvoiceItem extends ApiResource
             quantity: self::string($data, 'quantity', '1'),
             unitAmount: self::string($data, 'unit_amount', '0'),
             total: self::string($data, 'total', '0'),
+            taxRate: self::nullableString($data, 'tax_rate'),
         );
     }
 }

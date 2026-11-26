@@ -18,6 +18,7 @@ use VeliraPay\Enums\EventType;
 use VeliraPay\Enums\MemberRole;
 use VeliraPay\Enums\PlanName;
 use VeliraPay\Enums\QuestionType;
+use VeliraPay\Enums\RefundRequestStatus;
 use VeliraPay\Enums\WebhookDeliveryStatus;
 use VeliraPay\Resources\PayoutAddress;
 
@@ -40,6 +41,7 @@ final class ConstantsTest extends TestCase
         yield 'account types' => [AccountType::class, ['personal', 'organization']];
         yield 'checkout locales' => [CheckoutLocale::class, ['en', 'fr', 'de', 'es', 'tr', 'pt', 'ru', 'ar']];
         yield 'question types' => [QuestionType::class, ['text', 'textarea', 'number', 'email', 'phone', 'url', 'date', 'select', 'checkbox', 'country']];
+        yield 'refund request statuses' => [RefundRequestStatus::class, ['awaiting_address', 'awaiting_transfer', 'confirming', 'refunded', 'canceled', 'expired']];
     }
 
     /**
@@ -54,7 +56,7 @@ final class ConstantsTest extends TestCase
 
     public function test_every_activity_action_is_named_the_newest_included(): void
     {
-        $this->assertCount(66, ActivityAction::cases());
+        $this->assertCount(70, ActivityAction::cases());
         $this->assertSame(ActivityAction::SecondFactorRequirementChanged, ActivityAction::from('team.second_factor_requirement_changed'));
         $this->assertSame(ActivityAction::SocialAccountDisconnected, ActivityAction::from('auth.social_disconnected'));
         $this->assertSame(ActivityAction::TeamCreated, ActivityAction::from('team.created'));
@@ -68,6 +70,10 @@ final class ConstantsTest extends TestCase
         $this->assertSame(ActivityAction::EmailChangeUndone, ActivityAction::from('auth.email_change_undone'));
         $this->assertSame(ActivityAction::ClaudeLinked, ActivityAction::from('claude.linked'));
         $this->assertSame(ActivityAction::ClaudeUnlinked, ActivityAction::from('claude.unlinked'));
+        $this->assertSame(ActivityAction::RefundRequested, ActivityAction::from('refund.requested'));
+        $this->assertSame(ActivityAction::RefundCanceled, ActivityAction::from('refund.canceled'));
+        $this->assertSame(ActivityAction::AccountingConnected, ActivityAction::from('accounting.connected'));
+        $this->assertSame(ActivityAction::AccountingDisconnected, ActivityAction::from('accounting.disconnected'));
     }
 
     public function test_an_owner_is_never_given_through_the_api(): void

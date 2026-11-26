@@ -12,6 +12,7 @@ use VeliraPay\Exceptions\ApiException;
 use VeliraPay\Exceptions\ConnectionException;
 use VeliraPay\Page;
 use VeliraPay\Resources\Charge;
+use VeliraPay\Resources\RefundRequest;
 
 /**
  * The /v1/charges endpoints.
@@ -93,6 +94,107 @@ final class ChargeService extends Service
     public function recordRefund(string $id, array $params, ?string $idempotencyKey = null): Charge
     {
         return Charge::fromArray($this->request('POST', self::path('/v1/charges/%s/refunds', $id), self::decimals($params, 'amount'), $idempotencyKey));
+    }
+
+    /**
+     * List the refunds started for a charge, newest first.
+     *
+     * @param  array{page?: int, per_page?: int}  $params
+     * @return Page<RefundRequest>
+     *
+     * @throws ApiException
+     * @throws ConnectionException
+     */
+    public function refundRequests(string $id, array $params = []): Page
+    {
+        return $this->page(self::path('/v1/charges/%s/refund-requests', $id), $params, RefundRequest::fromArray(...));
+    }
+
+    /**
+     * Retrieve one of a charge's refund requests.
+     *
+     * @throws ApiException
+     * @throws ConnectionException
+     */
+    public function retrieveRefundRequest(string $id, string $refundRequestId): RefundRequest
+    {
+        return RefundRequest::fromArray($this->request('GET', self::path('/v1/charges/%s/refund-requests/%s', $id, $refundRequestId)));
+    }
+
+    /**
+     * Start a refund: set the amount aside and, without an address, email the customer a link to give one, which is the
+     * request's addressUrl either way. You then send it from your own wallet, and it is recorded once the chain shows it.
+     *
+     * @param  array{amount: numeric-string|int|float, reason?: string|null, address?: string|null}  $params
+     *
+     * @throws ApiException
+     * @throws ConnectionException
+     */
+    public function startRefund(string $id, array $params, ?string $idempotencyKey = null): RefundRequest
+    {
+        return RefundRequest::fromArray($this->request('POST', self::path('/v1/charges/%s/refund-requests', $id), self::decimals($params, 'amount'), $idempotencyKey));
+    }
+
+    /**
+     * Give a refund waiting for the customer's address the one they gave you some other way.
+     *
+     * @param  array{address: string}  $params
+     *
+     * @throws ApiException
+     * @throws ConnectionException
+     */
+    public function setRefundAddress(string $id, string $refundRequestId, array $params, ?string $idempotencyKey = null): RefundRequest
+    {
+        return RefundRequest::fromArray($this->request('POST', self::path('/v1/charges/%s/refund-requests/%s/address', $id, $refundRequestId), $params, $idempotencyKey));
+    }
+
+    /**
+     * Give a refund the hash of the transaction you sent it in; the chain is looked at straight away and the refund is
+     * recorded once the transfer has its confirmations.
+     *
+     * @param  array{txid: string}  $params
+     *
+     * @throws ApiException
+     * @throws ConnectionException
+     */
+    public function markRefundSent(string $id, string $refundRequestId, array $params, ?string $idempotencyKey = null): RefundRequest
+    {
+        return RefundRequest::fromArray($this->request('POST', self::path('/v1/charges/%s/refund-requests/%s/sent', $id, $refundRequestId), $params, $idempotencyKey));
+    }
+
+    /**
+     * Record a started refund as sent, on your word, for a transfer the chain is not seen to carry.
+     *
+     * @param  array{txid?: string|null}  $params
+     *
+     * @throws ApiException
+     * @throws ConnectionException
+     */
+    public function completeRefund(string $id, string $refundRequestId, array $params = [], ?string $idempotencyKey = null): RefundRequest
+    {
+        return RefundRequest::fromArray($this->request('POST', self::path('/v1/charges/%s/refund-requests/%s/complete', $id, $refundRequestId), $params === [] ? null : $params, $idempotencyKey));
+    }
+
+    /**
+     * Email the customer the link to give a refund's address again, which then works for another 14 days.
+     *
+     * @throws ApiException
+     * @throws ConnectionException
+     */
+    public function resendRefundLink(string $id, string $refundRequestId, ?string $idempotencyKey = null): RefundRequest
+    {
+        return RefundRequest::fromArray($this->request('POST', self::path('/v1/charges/%s/refund-requests/%s/resend', $id, $refundRequestId), null, $idempotencyKey));
+    }
+
+    /**
+     * Stop a refund that has not been recorded, which frees what it set aside.
+     *
+     * @throws ApiException
+     * @throws ConnectionException
+     */
+    public function cancelRefund(string $id, string $refundRequestId, ?string $idempotencyKey = null): RefundRequest
+    {
+        return RefundRequest::fromArray($this->request('POST', self::path('/v1/charges/%s/refund-requests/%s/cancel', $id, $refundRequestId), null, $idempotencyKey));
     }
 
     /**
