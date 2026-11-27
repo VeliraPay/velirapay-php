@@ -78,7 +78,8 @@ abstract class Service
     {
         $data = $response->json()['data'] ?? null;
 
-        if (! is_array($data)) {
+        // An object where the list belongs would otherwise be walked value by value, each object inside it read as an item.
+        if (! is_array($data) || ! $response->dataIsList()) {
             throw new UnexpectedResponseException('The VeliraPay API answered without the list it was asked for.', $response);
         }
 
@@ -105,7 +106,8 @@ abstract class Service
     {
         $data = $response->json()['data'] ?? null;
 
-        if (! is_array($data) || ($data !== [] && array_is_list($data))) {
+        // An empty list or an empty object where the object belongs would otherwise come back as a resource with nothing in it, not even its id.
+        if (! is_array($data) || $data === [] || ! $response->dataIsObject()) {
             throw new UnexpectedResponseException('The VeliraPay API answered without the object it was asked for.', $response);
         }
 
@@ -130,7 +132,7 @@ abstract class Service
         $response = $this->transport->request('GET', $path, $params);
         $json = $response->json();
 
-        if (! is_array($json['data'] ?? null)) {
+        if (! is_array($json['data'] ?? null) || ! $response->dataIsList()) {
             throw new UnexpectedResponseException('The VeliraPay API answered without the list it was asked for.', $response);
         }
 

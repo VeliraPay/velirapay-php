@@ -136,6 +136,66 @@ final class ErrorsTest extends TestCase
         $this->client()->charges->retrieve('k3v9x2m7q8wz');
     }
 
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function bodiesWithoutTheObject(): array
+    {
+        return [
+            'an empty list where the object belongs' => ['{"data":[]}'],
+            'an empty object' => ['{"data":{}}'],
+            'a list of objects' => ['{"data":[{"id":"k3v9x2m7q8wz"}]}'],
+            'no data at all' => ['{"meta":{"mode":"test"}}'],
+        ];
+    }
+
+    #[DataProvider('bodiesWithoutTheObject')]
+    public function test_an_answer_without_the_object_asked_for_is_reported_rather_than_read_as_an_empty_one(string $body): void
+    {
+        $this->http->queue(new Response(200, ['Content-Type' => 'application/json'], $body));
+
+        $this->expectException(UnexpectedResponseException::class);
+
+        $this->client()->charges->retrieve('k3v9x2m7q8wz');
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function bodiesWithoutTheList(): array
+    {
+        return [
+            'one object where the list belongs, whose own objects would be read as items' => ['{"data":{"id":"k3v9x2m7q8wz","customer":{"email":null},"payment_link":{"code":"abc"}}}'],
+            'an empty object' => ['{"data":{}}'],
+            'no data at all' => ['{"meta":{"mode":"test"}}'],
+        ];
+    }
+
+    #[DataProvider('bodiesWithoutTheList')]
+    public function test_an_answer_without_the_list_asked_for_is_reported_rather_than_read_as_items(string $body): void
+    {
+        $this->http->queue(new Response(200, ['Content-Type' => 'application/json'], $body));
+        $this->http->queue(new Response(200, ['Content-Type' => 'application/json'], $body));
+
+        try {
+            $this->client()->charges->list();
+            $this->fail('A page was read from it.');
+        } catch (UnexpectedResponseException) {
+            $this->expectException(UnexpectedResponseException::class);
+
+            $this->client()->assets->list();
+        }
+    }
+
+    public function test_an_empty_list_and_an_object_with_empty_metadata_are_read_as_they_are(): void
+    {
+        $this->http->queue(new Response(200, ['Content-Type' => 'application/json'], '{"data":[],"meta":{"current_page":1,"last_page":1,"per_page":25,"total":0}}'));
+        $this->http->queue(new Response(200, ['Content-Type' => 'application/json'], (string) json_encode(['data' => [...self::fixture('charge'), 'metadata' => (object) []]])));
+
+        $this->assertSame([], $this->client()->charges->list()->data);
+        $this->assertSame([], $this->client()->charges->retrieve('k3v9x2m7q8wz')->metadata);
+    }
+
     public function test_an_unreachable_api_is_reported(): void
     {
         $this->http->queue(new ConnectException('Could not resolve host', new Request('GET', 'https://api.velirapay.com/v1/charges')));

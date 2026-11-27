@@ -2,6 +2,10 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+- An answer whose `data` is not what was asked for is reported with `UnexpectedResponseException` rather than read. An empty list or an empty object where one resource belongs used to come back as a resource with nothing in it, not even its id, and an object where a list belongs had the objects inside it read as items. `ApiResponse` gains `dataIsList()` and `dataIsObject()`, which ask the body itself, since an empty list and an empty object decode to the same array.
+
 ## 0.6.16 - 2026-11-26
 
 - Refund requests: `$velirapay->charges->startRefund()` sets part of a paid charge aside and, without an address, emails the customer a link to give one, then `refundRequests()`, `retrieveRefundRequest()`, `setRefundAddress()`, `markRefundSent()`, `completeRefund()`, `resendRefundLink()` and `cancelRefund()` follow it to the refund, all with the `charges:refund` permission. They return a `RefundRequest`, whose `status` is a `RefundRequestStatus` value.

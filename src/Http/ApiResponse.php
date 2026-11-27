@@ -7,6 +7,7 @@ namespace VeliraPay\Http;
 use DateTimeImmutable;
 use JsonException;
 use Psr\Http\Message\ResponseInterface;
+use stdClass;
 use VeliraPay\Exceptions\UnexpectedResponseException;
 
 /**
@@ -114,6 +115,36 @@ final class ApiResponse
 
         /** @var array<string, mixed> */
         return is_array($meta) ? $meta : [];
+    }
+
+    /**
+     * Whether the body carries a JSON list under "data", such as a page of charges. Decoded to arrays, an empty list and an empty object read the same, and an object's values can be walked like a list's, so the body itself is asked.
+     */
+    public function dataIsList(): bool
+    {
+        return is_array($this->rawData());
+    }
+
+    /**
+     * Whether the body carries a JSON object under "data", such as one charge.
+     */
+    public function dataIsObject(): bool
+    {
+        return $this->rawData() instanceof stdClass;
+    }
+
+    /**
+     * What the body carries under "data" with objects kept apart from lists, or null when it carries none.
+     */
+    private function rawData(): mixed
+    {
+        try {
+            $decoded = json_decode($this->body, false, 512, JSON_THROW_ON_ERROR | JSON_BIGINT_AS_STRING);
+        } catch (JsonException) {
+            return null;
+        }
+
+        return $decoded instanceof stdClass ? ($decoded->data ?? null) : null;
     }
 
     /**
