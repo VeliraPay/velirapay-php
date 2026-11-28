@@ -2,7 +2,7 @@
 
 All notable changes to this library are documented here. It follows [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.6.17 - 2026-11-28
 
 - `RefundRequest` gains `detectedTxid`, the transfer the chain shows at the customer's address. A refund request no longer records a transfer it found by its amount alone, since others may pay that address too: while `txid` is null, `detectedTxid` names one that fits and the status stays `awaiting_transfer` until you give it to `markRefundSent()`. `txid` is now only the hash you gave. The new constructor argument is last and optional.
 - An answer whose `data` is not what was asked for is reported with `UnexpectedResponseException` rather than read. An empty list or an empty object where one resource belongs used to come back as a resource with nothing in it, not even its id, and an object where a list belongs had the objects inside it read as items. `ApiResponse` gains `dataIsList()` and `dataIsObject()`, which ask the body itself, since an empty list and an empty object decode to the same array.
