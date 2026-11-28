@@ -39,9 +39,9 @@ final class RefundRequest extends ApiResource
         public readonly ?DateTimeImmutable $linkExpiresAt,
         /** When the link was last emailed to the customer. */
         public readonly ?DateTimeImmutable $emailedAt,
-        /** The transaction you said carried the refund, or the one the chain showed. */
+        /** The transaction you said carried the refund. */
         public readonly ?string $txid,
-        /** What the chain shows arriving at the address for the refund. */
+        /** What the transfer in detectedTxid carried. */
         public readonly ?string $detectedAmount,
         /** How many confirmations that transfer has. */
         public readonly ?int $confirmations,
@@ -53,6 +53,8 @@ final class RefundRequest extends ApiResource
         public readonly ?DateTimeImmutable $completedAt,
         /** When it was canceled. */
         public readonly ?DateTimeImmutable $canceledAt,
+        /** The transfer the chain shows at the address: the one with your hash, or, while txid is null, one that fits the refund and waits for you to give it to markRefundSent(). */
+        public readonly ?string $detectedTxid = null,
     ) {
         parent::__construct($attributes);
     }
@@ -83,6 +85,7 @@ final class RefundRequest extends ApiResource
             createdAt: self::date($data, 'created_at'),
             completedAt: self::date($data, 'completed_at'),
             canceledAt: self::date($data, 'canceled_at'),
+            detectedTxid: self::nullableString($data, 'detected_txid'),
         );
     }
 

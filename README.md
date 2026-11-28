@@ -178,7 +178,7 @@ $velirapay->charges->recordRefund('k3v9x2m7q8wz', [
 ]);
 ```
 
-To have VeliraPay ask the customer where a refund goes, start a refund request instead. The amount is set aside at once, the customer is emailed a link to give the address when the charge has their email (`$refundRequest->addressUrl` is that link either way), and once you send the coins from your own wallet the address is watched and the refund recorded, with `charge.refunded`, when the transfer confirms:
+To have VeliraPay ask the customer where a refund goes, start a refund request instead. The amount is set aside at once, the customer is emailed a link to give the address when the charge has their email (`$refundRequest->addressUrl` is that link either way), and once you send the coins from your own wallet and give the hash with `markRefundSent()`, the address is watched for that transfer and the refund recorded, with `charge.refunded`, when it confirms. Until you give a hash, a transfer that fits the refund is only shown, as `$refundRequest->detectedTxid`, since others may pay that address too: pass it to `markRefundSent()` to say it is yours:
 
 ```php
 $refundRequest = $velirapay->charges->startRefund('k3v9x2m7q8wz', ['amount' => '0.0005', 'reason' => 'Returned item'], 'refund-1042-1');

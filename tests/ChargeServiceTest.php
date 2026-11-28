@@ -523,6 +523,7 @@ final class ChargeServiceTest extends TestCase
         $this->assertSame('customer', $refundRequest->addressGivenBy);
         $this->assertNull($refundRequest->addressUrl);
         $this->assertSame(3, $refundRequest->confirmations);
+        $this->assertSame($refundRequest->txid, $refundRequest->detectedTxid);
         $this->assertEquals(new DateTimeImmutable('2026-12-10T09:00:00Z'), $refundRequest->linkExpiresAt);
         $this->assertNull($refundRequest->canceledAt);
         $refund = $refundRequest->refund;
